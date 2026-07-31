@@ -1,0 +1,39 @@
+---
+description: GDScript 코드 스타일/타입/네이밍 컨벤션 (Godot 범용, 다른 프로젝트로 복사 가능)
+globs: **/*.gd
+alwaysApply: false
+---
+
+# GDScript 컨벤션 (범용)
+
+> 프로젝트 고유 정보 없음. 다른 Godot 게임 프로젝트로 그대로 복사해 재사용 가능.
+
+## 타입 힌트 (필수)
+- 모든 변수·매개변수·반환값에 명시적 타입을 붙인다. 추론(`:=`)은 우변 타입이 자명할 때만.
+- 반환값이 없으면 `-> void`를 명시한다.
+
+```gdscript
+# ✅ GOOD
+func take_damage(amount: int) -> void:
+    _health -= amount
+
+# ❌ BAD
+func take_damage(amount):
+    _health -= amount
+```
+
+## 네이밍
+- 파일/노드: `snake_case.gd`, 클래스: `PascalCase`(`class_name PlayerController`).
+- 함수·변수: `snake_case`, 상수: `UPPER_SNAKE_CASE`.
+- 비공개(외부 미사용) 멤버·함수는 `_` 접두사(`_velocity`, `_apply_gravity()`).
+- 시그널: 과거형 사건 이름(`health_changed`, `enemy_died`).
+
+## 함수·구조
+- 함수는 한 가지 일만. 20줄 초과·중첩 3단계 초과 시 분리한다.
+- 매직 넘버 금지 → `const`나 `@export`로 이름을 준다.
+- 노드 참조는 `@onready var _sprite: Sprite2D = $Sprite2D`로 캐싱(경로 문자열 반복 금지).
+- 조정 가능한 값은 `@export`로 노출하고 튜닝 값은 코드가 아닌 인스펙터/리소스로.
+
+## 안전
+- `get_node`/`$` 결과가 nullable하면 사용 전 확인하거나 `@onready`로 보장한다.
+- 죽은 참조 접근을 피하려면 `is_instance_valid(node)`로 검증한다.

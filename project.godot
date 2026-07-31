@@ -6,8 +6,8 @@ config_version=5
 
 [application]
 
-config/name="Roguelite Survivor (Prototype)"
-config/description="Brotato-style 2D roguelite survivor. Solo dev prototype."
+config/name="Feral Bloom (Prototype)"
+config/description="동물 진화/변이 2D 로그라이트 서바이버. 귀엽지만 다크한 톤. 1인 개발 프로토타입."
 config/features=PackedStringArray("4.7", "GL Compatibility")
 config/icon="res://icon.svg"
 run/main_scene=""
