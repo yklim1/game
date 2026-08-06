@@ -4,6 +4,7 @@
 [ext_resource type="Texture2D" path="res://icon.svg" id="2"]
 
 [sub_resource type="CircleShape2D" id="shape_body"]
+resource_local_to_scene = true
 radius = 14.0
 
 [node name="Animal" type="CharacterBody2D"]

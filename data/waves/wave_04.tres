@@ -1,0 +1,16 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wave_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+index = 4
+display_name = "늪지의 독"
+duration = 40.0
+spawn_interval = 0.8
+batch_size = 3
+hp_mult = 1.6
+speed_mult = 1.08
+damage_mult = 1.1
+elite_chance = 0.04
+spawn_ids = Array[String](["spore_ant", "rabid_hare", "mutant_crow", "bile_toad"])

@@ -1,0 +1,21 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/animal_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "mutant_crow"
+display_name = "변이 까마귀"
+color = Color(0.43, 0.35, 0.85, 1)
+max_hp = 22.0
+move_speed = 186.0
+contact_damage = 10.0
+essence_value = 2
+feed_chance = 0.04
+behavior = 0
+spawn_weight = 1.2
+family = 3
+radius = 13.0
+wobble_strength = 0.7
+wobble_speed = 7.5
+tags = Array[String](["비행"])

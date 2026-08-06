@@ -1,0 +1,16 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wave_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+index = 1
+display_name = "포자 개미 무리"
+duration = 30.0
+spawn_interval = 1.2
+batch_size = 1
+hp_mult = 1.0
+speed_mult = 1.0
+damage_mult = 1.0
+elite_chance = 0.0
+spawn_ids = Array[String](["spore_ant"])

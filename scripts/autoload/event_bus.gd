@@ -3,4 +3,10 @@ extends Node
 
 signal player_health_changed(current: float, maximum: float)
 signal player_died
-signal animal_died(position: Vector2, essence_value: int)
+signal animal_died(position: Vector2, data: AnimalData, essence_value: int)
+signal essence_collected(value: int)
+signal feed_collected(value: int)
+signal xp_changed(current_xp: int, xp_to_next: int, level: int)
+signal player_leveled_up(level: int)
+signal wave_started(index: int, data: WaveData)
+signal wave_ended(index: int)

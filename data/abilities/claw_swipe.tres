@@ -1,0 +1,22 @@
+[gd_resource type="Resource" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/ability_data.gd" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/attacks/melee_arc.tscn" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = "claw_swipe"
+display_name = "발톱 휘두르기"
+attack_scene = ExtResource("2")
+base_damage = 24.0
+cooldown = 0.9
+attack_kind = 1
+projectile_count = 1
+pierce = 0
+range = 120.0
+area_radius = 118.0
+arc_deg = 150.0
+color = Color(1, 0.4, 0.35, 0.7)
+aim_mode = 0
+rarity = 0
+lineage = Array[String](["포식"])

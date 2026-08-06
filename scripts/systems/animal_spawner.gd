@@ -1,51 +1,61 @@
 class_name AnimalSpawner
 extends Node2D
-## 화면 밖 원형 가장자리에서 적을 스폰. 시간이 지날수록 간격 단축·배치 수 증가(웨이브 스케일링).
+## 화면 밖 원형 가장자리에서 동물을 스폰한다. 스폰 종류·간격·배율은 WaveDirector가 제공한다.
 
-@export var animal_data: AnimalData
-@export var base_interval: float = 1.1
-@export var min_interval: float = 0.3
-@export var interval_decay_per_sec: float = 0.015
 @export var spawn_radius: float = 780.0
-@export var batch_start: int = 1
-@export var seconds_per_extra_spawn: float = 18.0
-@export var hp_growth_per_min: float = 0.5
-@export var speed_growth_per_min: float = 0.12
+## 동시에 살아 있을 수 있는 동물 수 상한(성능·풀 폭주 방지).
+@export var max_alive: int = 260
+@export var elite_hp_mult: float = 6.0
+@export var elite_speed_mult: float = 0.8
+@export var elite_damage_mult: float = 1.6
 
 var _pool: ObjectPool
 var _target: Node2D
+var _director: WaveDirector
 var _timer_left: float = 0.0
+var _spawned_total: int = 0
 
-func setup(pool: ObjectPool, target: Node2D) -> void:
+func setup(pool: ObjectPool, target: Node2D, director: WaveDirector) -> void:
 	_pool = pool
 	_target = target
+	_director = director
+
+func get_spawned_total() -> int:
+	return _spawned_total
 
 func _physics_process(delta: float) -> void:
-	if _pool == null or _target == null or RunState.is_game_over:
+	if _pool == null or _target == null or _director == null or RunState.is_game_over:
 		return
 	_timer_left -= delta
-	if _timer_left <= 0.0:
-		_spawn_batch()
-		_timer_left = _current_interval()
-
-func _current_interval() -> float:
-	var reduced: float = base_interval - RunState.elapsed_time * interval_decay_per_sec
-	return maxf(min_interval, reduced)
-
-func _current_batch_size() -> int:
-	return batch_start + int(RunState.elapsed_time / seconds_per_extra_spawn)
+	if _timer_left > 0.0:
+		return
+	_timer_left = _director.get_spawn_interval()
+	_spawn_batch()
 
 func _spawn_batch() -> void:
-	var minutes: float = RunState.elapsed_time / 60.0
-	var hp_mult: float = 1.0 + minutes * hp_growth_per_min
-	var speed_mult: float = 1.0 + minutes * speed_growth_per_min
-	for _i in _current_batch_size():
-		_spawn_one(hp_mult, speed_mult)
+	var alive: int = get_tree().get_nodes_in_group("animal").size()
+	var budget: int = mini(_director.get_batch_size(), max_alive - alive)
+	for _i in maxi(budget, 0):
+		_spawn_one()
 
-func _spawn_one(hp_mult: float, speed_mult: float) -> void:
-	if animal_data == null:
+func _spawn_one() -> void:
+	var data: AnimalData = _director.pick_animal()
+	if data == null:
 		return
-	var angle: float = randf() * TAU
-	var pos: Vector2 = _target.global_position + Vector2(cos(angle), sin(angle)) * spawn_radius
 	var animal: Node = _pool.acquire()
-	animal.setup(animal_data, pos, _target, hp_mult, speed_mult)
+	if animal == null:
+		return
+	var is_elite: bool = randf() < _director.get_elite_chance()
+	var hp_mult: float = _director.get_hp_mult()
+	var speed_mult: float = _director.get_speed_mult()
+	var damage_mult: float = _director.get_damage_mult()
+	if is_elite:
+		hp_mult *= elite_hp_mult
+		speed_mult *= elite_speed_mult
+		damage_mult *= elite_damage_mult
+	animal.setup(data, _random_spawn_position(), _target, hp_mult, speed_mult, damage_mult, is_elite)
+	_spawned_total += 1
+
+func _random_spawn_position() -> Vector2:
+	var angle: float = randf() * TAU
+	return _target.global_position + Vector2(cos(angle), sin(angle)) * spawn_radius

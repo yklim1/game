@@ -1,0 +1,16 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wave_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+index = 2
+display_name = "굴에서 나온 것들"
+duration = 35.0
+spawn_interval = 1.0
+batch_size = 2
+hp_mult = 1.15
+speed_mult = 1.02
+damage_mult = 1.0
+elite_chance = 0.0
+spawn_ids = Array[String](["spore_ant", "rabid_hare"])

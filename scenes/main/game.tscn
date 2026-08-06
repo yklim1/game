@@ -1,14 +1,16 @@
-[gd_scene load_steps=10 format=3]
+[gd_scene load_steps=12 format=3]
 
 [ext_resource type="Script" path="res://scripts/main/game.gd" id="1"]
 [ext_resource type="PackedScene" path="res://scenes/player/player.tscn" id="2"]
 [ext_resource type="Script" path="res://scripts/systems/object_pool.gd" id="3"]
-[ext_resource type="PackedScene" path="res://scenes/attacks/projectile.tscn" id="4"]
-[ext_resource type="PackedScene" path="res://scenes/animals/animal.tscn" id="5"]
-[ext_resource type="Script" path="res://scripts/systems/animal_spawner.gd" id="6"]
-[ext_resource type="Resource" path="res://data/animals/spore_ant.tres" id="7"]
-[ext_resource type="Script" path="res://scripts/ui/hud.gd" id="8"]
-[ext_resource type="Script" path="res://scripts/ui/game_over.gd" id="9"]
+[ext_resource type="PackedScene" path="res://scenes/animals/animal.tscn" id="4"]
+[ext_resource type="PackedScene" path="res://scenes/pickups/pickup.tscn" id="5"]
+[ext_resource type="Script" path="res://scripts/systems/attack_pool_registry.gd" id="6"]
+[ext_resource type="Script" path="res://scripts/systems/animal_spawner.gd" id="7"]
+[ext_resource type="Script" path="res://scripts/systems/wave_director.gd" id="8"]
+[ext_resource type="Script" path="res://scripts/systems/pickup_manager.gd" id="9"]
+[ext_resource type="Script" path="res://scripts/ui/hud.gd" id="10"]
+[ext_resource type="Script" path="res://scripts/ui/game_over.gd" id="11"]
 
 [node name="Game" type="Node2D"]
 script = ExtResource("1")
@@ -21,57 +23,87 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 color = Color(0.086, 0.141, 0.11, 1)
 
-[node name="ProjectilePool" type="Node2D" parent="."]
-script = ExtResource("3")
-scene = ExtResource("4")
-initial_size = 64
-
 [node name="AnimalPool" type="Node2D" parent="."]
 script = ExtResource("3")
+scene = ExtResource("4")
+initial_size = 96
+
+[node name="PickupPool" type="Node2D" parent="."]
+script = ExtResource("3")
 scene = ExtResource("5")
-initial_size = 64
+initial_size = 128
+
+[node name="AttackPools" type="Node2D" parent="."]
+script = ExtResource("6")
+default_pool_size = 48
 
 [node name="Player" parent="." instance=ExtResource("2")]
 position = Vector2(640, 360)
 
+[node name="WaveDirector" type="Node" parent="."]
+script = ExtResource("8")
+
 [node name="AnimalSpawner" type="Node2D" parent="."]
-script = ExtResource("6")
-animal_data = ExtResource("7")
+script = ExtResource("7")
+
+[node name="PickupManager" type="Node2D" parent="."]
+script = ExtResource("9")
 
 [node name="UI" type="CanvasLayer" parent="."]
 
 [node name="HUD" type="Control" parent="UI"]
 anchor_right = 1.0
 anchor_bottom = 1.0
-script = ExtResource("8")
+script = ExtResource("10")
 
 [node name="HPLabel" type="Label" parent="UI/HUD"]
 offset_left = 16.0
 offset_top = 12.0
-offset_right = 320.0
+offset_right = 360.0
 offset_bottom = 40.0
 text = "HP"
 
 [node name="TimeLabel" type="Label" parent="UI/HUD"]
 offset_left = 16.0
 offset_top = 40.0
-offset_right = 320.0
+offset_right = 360.0
 offset_bottom = 68.0
 text = "TIME"
 
 [node name="KillsLabel" type="Label" parent="UI/HUD"]
 offset_left = 16.0
 offset_top = 68.0
-offset_right = 320.0
+offset_right = 360.0
 offset_bottom = 96.0
 text = "KILLS"
+
+[node name="WaveLabel" type="Label" parent="UI/HUD"]
+offset_left = 16.0
+offset_top = 96.0
+offset_right = 360.0
+offset_bottom = 124.0
+text = "WAVE"
+
+[node name="LevelLabel" type="Label" parent="UI/HUD"]
+offset_left = 16.0
+offset_top = 124.0
+offset_right = 360.0
+offset_bottom = 152.0
+text = "LV"
+
+[node name="XPBar" type="ProgressBar" parent="UI/HUD"]
+offset_left = 16.0
+offset_top = 154.0
+offset_right = 360.0
+offset_bottom = 170.0
+show_percentage = false
 
 [node name="GameOver" type="Control" parent="UI"]
 process_mode = 3
 visible = false
 anchor_right = 1.0
 anchor_bottom = 1.0
-script = ExtResource("9")
+script = ExtResource("11")
 
 [node name="Dim" type="ColorRect" parent="UI/GameOver"]
 anchor_right = 1.0

@@ -1,0 +1,19 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/animal_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "bile_toad"
+display_name = "쓸개즙 두꺼비"
+color = Color(0.247, 0.749, 0.416, 1)
+max_hp = 52.0
+move_speed = 64.0
+contact_damage = 17.0
+essence_value = 3
+feed_chance = 0.1
+behavior = 0
+spawn_weight = 1.0
+family = 2
+radius = 19.0
+tags = Array[String](["독"])

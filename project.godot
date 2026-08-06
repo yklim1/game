@@ -15,6 +15,7 @@ run/main_scene="res://scenes/main/game.tscn"
 [autoload]
 
 EventBus="*res://scripts/autoload/event_bus.gd"
+ContentDB="*res://scripts/autoload/content_db.gd"
 RunState="*res://scripts/autoload/run_state.gd"
 
 [display]

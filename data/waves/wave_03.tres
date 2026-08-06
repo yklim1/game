@@ -1,0 +1,16 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/wave_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+index = 3
+display_name = "날개 돋은 무리"
+duration = 40.0
+spawn_interval = 0.9
+batch_size = 2
+hp_mult = 1.35
+speed_mult = 1.05
+damage_mult = 1.05
+elite_chance = 0.02
+spawn_ids = Array[String](["spore_ant", "rabid_hare", "mutant_crow"])

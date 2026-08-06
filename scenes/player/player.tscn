@@ -1,9 +1,8 @@
-[gd_scene load_steps=7 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scripts/player/player.gd" id="1"]
 [ext_resource type="Texture2D" path="res://icon.svg" id="2"]
 [ext_resource type="Script" path="res://scripts/systems/ability_manager.gd" id="3"]
-[ext_resource type="Resource" path="res://data/abilities/thorn_shot.tres" id="4"]
 
 [sub_resource type="CircleShape2D" id="shape_body"]
 radius = 18.0
@@ -33,6 +32,6 @@ shape = SubResource("shape_hurt")
 
 [node name="AbilityManager" type="Node2D" parent="."]
 script = ExtResource("3")
-ability = ExtResource("4")
+starting_ability_ids = Array[String](["thorn_shot", "claw_swipe", "venom_gland"])
 
 [node name="Camera2D" type="Camera2D" parent="."]

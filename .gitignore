@@ -15,6 +15,11 @@ export_presets.cfg
 data_*/
 mono_crash.*.json
 
+# 빌드 산출물 (익스포트 결과는 커밋하지 않는다)
+/build/
+*.exe
+*.pck
+
 # OS / editor
 .DS_Store
 Thumbs.db

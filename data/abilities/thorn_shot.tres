@@ -17,4 +17,7 @@ range = 460.0
 projectile_speed = 480.0
 projectile_lifetime = 1.3
 spread_deg = 12.0
+color = Color(1, 0.882, 0.302, 1)
 aim_mode = 0
+rarity = 0
+lineage = Array[String](["포식"])

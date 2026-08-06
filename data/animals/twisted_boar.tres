@@ -1,0 +1,19 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/animal_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "twisted_boar"
+display_name = "뒤틀린 멧돼지"
+color = Color(1, 0.69, 0.125, 1)
+max_hp = 170.0
+move_speed = 72.0
+contact_damage = 26.0
+essence_value = 8
+feed_chance = 0.35
+behavior = 0
+spawn_weight = 0.6
+family = 4
+radius = 26.0
+tags = Array[String](["탱커"])
