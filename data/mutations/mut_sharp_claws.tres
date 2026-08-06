@@ -1,0 +1,19 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/mutation_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "mut_sharp_claws"
+display_name = "날카로운 발톱"
+description = "모든 능력 데미지 +15%"
+kind = 0
+payload = {
+"damage_pct": 0.15
+}
+lineage = Array[String](["포식"])
+rarity = 0
+weight = 1.2
+requires = Array[String]([])
+max_stacks = 5
+cost = 10

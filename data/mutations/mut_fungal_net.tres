@@ -1,0 +1,19 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/mutation_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "mut_fungal_net"
+display_name = "균사 그물"
+description = "정수·먹이 픽업 반경 +35%"
+kind = 0
+payload = {
+"pickup_radius_pct": 0.35
+}
+lineage = Array[String](["포자"])
+rarity = 0
+weight = 1.0
+requires = Array[String]([])
+max_stacks = 3
+cost = 10

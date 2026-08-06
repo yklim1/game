@@ -1,0 +1,20 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/mutation_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "mut_dense_muscle"
+display_name = "치밀한 근육"
+description = "최대 체력 +15, 데미지 +5%"
+kind = 0
+payload = {
+"damage_pct": 0.05,
+"max_health": 15.0
+}
+lineage = Array[String]([])
+rarity = 0
+weight = 0.9
+requires = Array[String]([])
+max_stacks = 5
+cost = 10

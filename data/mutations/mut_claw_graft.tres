@@ -1,0 +1,19 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/mutation_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "mut_claw_graft"
+display_name = "발톱 이식"
+description = "새 능력: 발톱 휘두르기 (근접 부채꼴)"
+kind = 1
+payload = {
+"add_ability": "claw_swipe"
+}
+lineage = Array[String](["포식"])
+rarity = 0
+weight = 1.0
+requires = Array[String](["not_ability:claw_swipe"])
+max_stacks = 1
+cost = 16

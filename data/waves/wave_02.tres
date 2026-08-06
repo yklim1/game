@@ -14,3 +14,4 @@ speed_mult = 1.02
 damage_mult = 1.0
 elite_chance = 0.0
 spawn_ids = Array[String](["spore_ant", "rabid_hare"])
+feed_reward = 18

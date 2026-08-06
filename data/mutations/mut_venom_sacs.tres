@@ -1,0 +1,19 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/mutation_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "mut_venom_sacs"
+display_name = "독주머니"
+description = "새 능력: 독 분비 (지속 장판)"
+kind = 1
+payload = {
+"add_ability": "venom_gland"
+}
+lineage = Array[String](["독"])
+rarity = 0
+weight = 1.0
+requires = Array[String](["not_ability:venom_gland"])
+max_stacks = 1
+cost = 16

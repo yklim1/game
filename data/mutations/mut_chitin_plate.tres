@@ -1,0 +1,19 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/mutation_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "mut_chitin_plate"
+display_name = "키틴 갑판"
+description = "최대 체력 +25"
+kind = 0
+payload = {
+"max_health": 25.0
+}
+lineage = Array[String](["방어"])
+rarity = 0
+weight = 1.2
+requires = Array[String]([])
+max_stacks = 5
+cost = 10

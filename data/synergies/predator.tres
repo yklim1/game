@@ -1,0 +1,15 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/lineage_synergy_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+lineage = "포식"
+display_name = "포식 계통"
+thresholds = Array[int]([3, 5])
+descriptions = Array[String](["크리티컬 확률 +12%", "처치 시 체력 회복 +0.6"])
+payloads = Array[Dictionary]([{
+"crit_chance": 0.12
+}, {
+"heal_on_kill": 0.6
+}])

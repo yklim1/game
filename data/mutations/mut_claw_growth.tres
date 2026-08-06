@@ -1,0 +1,20 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/mutation_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "mut_claw_growth"
+display_name = "발톱 비대"
+description = "발톱 휘두르기 데미지 +35%"
+kind = 2
+payload = {
+"ability_damage_pct": 0.35,
+"ability_id": "claw_swipe"
+}
+lineage = Array[String](["포식"])
+rarity = 1
+weight = 1.0
+requires = Array[String](["ability:claw_swipe"])
+max_stacks = 3
+cost = 18

@@ -20,10 +20,11 @@ func setup(ability: AbilityData, origin: Vector2, _dir: Vector2, damage: float) 
 	_life_left = ability.duration
 	_tick_interval = maxf(ability.tick_interval, 0.05)
 	_tick_left = 0.0
-	_radius_sq = ability.area_radius * ability.area_radius
+	var radius: float = ability.area_radius * RunState.area_mult
+	_radius_sq = radius * radius
 	_damage = damage
 	_sprite.self_modulate = ability.color
-	_sprite.scale = Vector2.ONE * (ability.area_radius * 2.0 / float(_sprite.texture.get_width()))
+	_sprite.scale = Vector2.ONE * (radius * 2.0 / float(_sprite.texture.get_width()))
 
 func on_acquire() -> void:
 	visible = true

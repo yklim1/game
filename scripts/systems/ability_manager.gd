@@ -15,6 +15,8 @@ var _registry: AttackPoolRegistry
 var _cooldowns: Array[float] = []
 
 func _ready() -> void:
+	RunState.ability_slots = max_slots
+	EventBus.mutation_acquired.connect(_on_mutation_acquired)
 	for id in starting_ability_ids:
 		var ability: AbilityData = ContentDB.get_ability(id)
 		if ability == null:
@@ -30,7 +32,25 @@ func add_ability(ability: AbilityData) -> bool:
 		return false
 	abilities.append(ability)
 	_cooldowns.append(0.0)
+	EventBus.ability_added.emit(ability)
 	return true
+
+func has_ability(id: String) -> bool:
+	for ability in abilities:
+		if ability != null and ability.id == id:
+			return true
+	return false
+
+## 변이 payload 의 "add_ability" 만 처리한다. 스탯 계열은 RunState 가 담당한다.
+func _on_mutation_acquired(data: MutationData) -> void:
+	var ability_id: String = String(data.payload.get("add_ability", ""))
+	if ability_id.is_empty() or has_ability(ability_id):
+		return
+	var ability: AbilityData = ContentDB.get_ability(ability_id)
+	if ability == null:
+		push_warning("AbilityManager: 변이가 가리키는 능력 id를 찾을 수 없음 '%s'" % ability_id)
+		return
+	add_ability(ability)
 
 func get_ability_count() -> int:
 	return abilities.size()
@@ -61,7 +81,7 @@ func _try_fire(ability: AbilityData) -> float:
 			return NO_TARGET_RETRY
 		dir = (target.global_position - global_position).normalized()
 	_fire_volley(ability, dir)
-	return ability.cooldown
+	return maxf(ability.cooldown * RunState.cooldown_mult, 0.02)
 
 func _needs_target(ability: AbilityData) -> bool:
 	return ability.attack_kind != AbilityData.AttackKind.AREA_FIELD
@@ -82,7 +102,15 @@ func _spawn_attack(ability: AbilityData, dir: Vector2) -> void:
 	var attack: Node = pool.acquire()
 	if attack == null or not attack.has_method("setup"):
 		return
-	attack.setup(ability, global_position, dir, ability.base_damage * RunState.damage_mult)
+	attack.setup(ability, global_position, dir, _roll_damage(ability))
+
+## 런 스탯(데미지 배율·능력별 보너스·크리티컬)을 반영한 최종 데미지.
+func _roll_damage(ability: AbilityData) -> float:
+	var damage: float = ability.base_damage * RunState.damage_mult
+	damage *= 1.0 + RunState.get_ability_damage_bonus(ability.id)
+	if RunState.crit_chance > 0.0 and randf() < RunState.crit_chance:
+		damage *= RunState.crit_mult
+	return damage
 
 func _find_target(ability: AbilityData) -> Node2D:
 	var animals: Array[Node] = get_tree().get_nodes_in_group("animal")

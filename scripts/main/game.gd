@@ -10,6 +10,8 @@ extends Node2D
 @onready var _wave_director: WaveDirector = $WaveDirector
 @onready var _pickup_manager: PickupManager = $PickupManager
 @onready var _game_over_panel: Control = $UI/GameOver
+@onready var _mutation_cards: MutationCardScreen = $UI/MutationCards
+@onready var _shop: ShopScreen = $UI/Shop
 
 func _enter_tree() -> void:
 	# 자식(_ready)들이 런 데이터를 읽기 전에 초기화한다.
@@ -44,6 +46,12 @@ func get_wave_director() -> WaveDirector:
 
 func get_pickup_manager() -> PickupManager:
 	return _pickup_manager
+
+func get_mutation_card_screen() -> MutationCardScreen:
+	return _mutation_cards
+
+func get_shop_screen() -> ShopScreen:
+	return _shop
 
 func is_game_over_visible() -> bool:
 	return _game_over_panel.visible

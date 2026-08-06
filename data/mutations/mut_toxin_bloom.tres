@@ -1,0 +1,20 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/mutation_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "mut_toxin_bloom"
+display_name = "독소 개화"
+description = "독 분비 데미지 +40%"
+kind = 2
+payload = {
+"ability_damage_pct": 0.4,
+"ability_id": "venom_gland"
+}
+lineage = Array[String](["독"])
+rarity = 1
+weight = 1.0
+requires = Array[String](["ability:venom_gland"])
+max_stacks = 3
+cost = 18

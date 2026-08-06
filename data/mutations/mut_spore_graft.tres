@@ -1,0 +1,19 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/mutation_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "mut_spore_graft"
+display_name = "포자 구름 이식"
+description = "새 능력: 포자 구름 (광역 장판)"
+kind = 1
+payload = {
+"add_ability": "spore_cloud"
+}
+lineage = Array[String](["포자"])
+rarity = 1
+weight = 1.2
+requires = Array[String](["not_ability:spore_cloud"])
+max_stacks = 1
+cost = 20

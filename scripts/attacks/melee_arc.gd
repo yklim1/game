@@ -17,9 +17,10 @@ func setup(ability: AbilityData, origin: Vector2, dir: Vector2, damage: float) -
 	global_position = origin
 	rotation = dir.angle()
 	_life_left = VISUAL_DURATION
+	var radius: float = ability.area_radius * RunState.area_mult
 	_sprite.self_modulate = ability.color
-	_sprite.scale = Vector2.ONE * (ability.area_radius * 2.0 / float(_sprite.texture.get_width()))
-	_apply_damage(origin, dir, ability, damage)
+	_sprite.scale = Vector2.ONE * (radius * 2.0 / float(_sprite.texture.get_width()))
+	_apply_damage(origin, dir, ability, damage, radius)
 
 func on_acquire() -> void:
 	visible = true
@@ -35,8 +36,8 @@ func _process(delta: float) -> void:
 	if _life_left <= 0.0:
 		_return_to_pool()
 
-func _apply_damage(origin: Vector2, dir: Vector2, ability: AbilityData, damage: float) -> void:
-	var radius_sq: float = ability.area_radius * ability.area_radius
+func _apply_damage(origin: Vector2, dir: Vector2, ability: AbilityData, damage: float, radius: float) -> void:
+	var radius_sq: float = radius * radius
 	var half_arc: float = deg_to_rad(ability.arc_deg) * 0.5
 	for node in get_tree().get_nodes_in_group("animal"):
 		var animal: Node2D = node as Node2D

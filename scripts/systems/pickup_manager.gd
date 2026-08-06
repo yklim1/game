@@ -45,8 +45,10 @@ func _physics_process(delta: float) -> void:
 	if _player == null or not is_instance_valid(_player) or _active.is_empty():
 		return
 	var player_pos: Vector2 = _player.global_position
-	var pickup_dist_sq: float = pickup_radius * pickup_radius
-	var magnet_dist_sq: float = magnet_radius * magnet_radius
+	# 변이/시너지로 늘어난 픽업 반경을 반영한다.
+	var radius_mult: float = RunState.pickup_radius_mult
+	var pickup_dist_sq: float = pow(pickup_radius * radius_mult, 2.0)
+	var magnet_dist_sq: float = pow(magnet_radius * radius_mult, 2.0)
 	var step: float = magnet_speed * delta
 	for i in range(_active.size() - 1, -1, -1):
 		var pickup: Pickup = _active[i]

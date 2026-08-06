@@ -5,10 +5,15 @@ extends Node
 const ABILITY_DIR: String = "res://data/abilities"
 const ANIMAL_DIR: String = "res://data/animals"
 const WAVE_DIR: String = "res://data/waves"
+const MUTATION_DIR: String = "res://data/mutations"
+const SYNERGY_DIR: String = "res://data/synergies"
 
 var _abilities: Dictionary = {}
 var _animals: Dictionary = {}
 var _waves: Array[WaveData] = []
+var _mutations: Dictionary = {}
+var _mutation_list: Array[MutationData] = []
+var _synergies: Array[LineageSynergyData] = []
 
 func _ready() -> void:
 	reload()
@@ -17,6 +22,9 @@ func reload() -> void:
 	_abilities.clear()
 	_animals.clear()
 	_waves.clear()
+	_mutations.clear()
+	_mutation_list.clear()
+	_synergies.clear()
 	for res in _load_dir(ABILITY_DIR):
 		var ability: AbilityData = res as AbilityData
 		if ability != null and not ability.id.is_empty():
@@ -30,6 +38,17 @@ func reload() -> void:
 		if wave != null:
 			_waves.append(wave)
 	_waves.sort_custom(func(a: WaveData, b: WaveData) -> bool: return a.index < b.index)
+	for res in _load_dir(MUTATION_DIR):
+		var mutation: MutationData = res as MutationData
+		if mutation != null and not mutation.id.is_empty():
+			_mutations[mutation.id] = mutation
+			_mutation_list.append(mutation)
+	# 추첨 결과가 파일 나열 순서에 좌우되지 않도록 id 순으로 고정한다.
+	_mutation_list.sort_custom(func(a: MutationData, b: MutationData) -> bool: return a.id < b.id)
+	for res in _load_dir(SYNERGY_DIR):
+		var synergy: LineageSynergyData = res as LineageSynergyData
+		if synergy != null and not synergy.lineage.is_empty():
+			_synergies.append(synergy)
 
 func get_ability(id: String) -> AbilityData:
 	return _abilities.get(id, null) as AbilityData
@@ -45,6 +64,24 @@ func get_ability_ids() -> Array:
 
 func get_animal_ids() -> Array:
 	return _animals.keys()
+
+func get_mutation(id: String) -> MutationData:
+	return _mutations.get(id, null) as MutationData
+
+func get_mutations() -> Array[MutationData]:
+	return _mutation_list
+
+func get_mutation_ids() -> Array:
+	return _mutations.keys()
+
+func get_synergies() -> Array[LineageSynergyData]:
+	return _synergies
+
+func get_synergy(lineage: String) -> LineageSynergyData:
+	for synergy in _synergies:
+		if synergy.lineage == lineage:
+			return synergy
+	return null
 
 func _load_dir(path: String) -> Array[Resource]:
 	var result: Array[Resource] = []

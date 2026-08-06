@@ -1,0 +1,19 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/mutation_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "mut_wind_glide"
+display_name = "바람 활공"
+description = "피격 회피 확률 +6%"
+kind = 0
+payload = {
+"dodge_chance": 0.06
+}
+lineage = Array[String](["비행"])
+rarity = 1
+weight = 1.0
+requires = Array[String]([])
+max_stacks = 3
+cost = 20

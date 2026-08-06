@@ -1,0 +1,19 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/mutation_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "mut_thorn_graft"
+display_name = "가시 이식"
+description = "새 능력: 가시 발사 (관통 투사체)"
+kind = 1
+payload = {
+"add_ability": "thorn_shot"
+}
+lineage = Array[String](["포식"])
+rarity = 0
+weight = 1.0
+requires = Array[String](["not_ability:thorn_shot"])
+max_stacks = 1
+cost = 16

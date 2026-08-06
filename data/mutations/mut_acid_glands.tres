@@ -1,0 +1,19 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/mutation_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "mut_acid_glands"
+display_name = "산성 분비선"
+description = "모든 능력 쿨다운 8% 감소"
+kind = 0
+payload = {
+"cooldown_pct": 0.08
+}
+lineage = Array[String](["독"])
+rarity = 0
+weight = 1.0
+requires = Array[String]([])
+max_stacks = 4
+cost = 14

@@ -1,0 +1,20 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/mutation_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "mut_corrosive_blood"
+display_name = "부식성 체액"
+description = "데미지 +10%, 장판·근접 범위 +10%"
+kind = 0
+payload = {
+"area_pct": 0.1,
+"damage_pct": 0.1
+}
+lineage = Array[String](["독"])
+rarity = 0
+weight = 1.0
+requires = Array[String]([])
+max_stacks = 4
+cost = 12

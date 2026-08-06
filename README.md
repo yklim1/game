@@ -17,7 +17,7 @@
 - `scripts/` : GDScript(.gd)
 - `assets/sprites/` : 2D 스프라이트(AI 생성 이미지 등)
 - `assets/audio/` : 사운드/음악
-- `data/` : 콘텐츠 정의 리소스(.tres) — `abilities/`, `animals/`, `waves/`
+- `data/` : 콘텐츠 정의 리소스(.tres) — `abilities/`, `animals/`, `waves/`, `mutations/`, `synergies/`
 - `docs/` : 기획/설계/계획/아트 문서
 - `docs/concept/` : 컨셉 아트 시안
 - `docs/screenshots/` : 자동 캡처 스크린샷
@@ -34,7 +34,8 @@
 
 ## 자동 시뮬레이션 테스트 (사람 입력 없이 검증)
 
-헤드리스로 게임을 실제로 돌리며 스폰·전투·XP/레벨업·게임오버·풀 재사용·성능을 검증한다.
+헤드리스로 게임을 실제로 돌리며 스폰·전투·XP/레벨업·3택 변이 카드·소굴 상점·계통 시너지·
+게임오버·풀 재사용·UI 노드 누수·성능을 검증한다.
 모두 통과하면 종료코드 0, 하나라도 실패하면 1을 반환한다.
 
 ```
@@ -50,6 +51,12 @@
 ```
 "<Godot 콘솔 실행파일>" --path . res://scenes/tests/screenshot_capture.tscn -- --delay=75 --out=docs/screenshots/phase2_gameplay.png
 ```
+
+- `--mode=cards` : 강제로 레벨업시켜 3택 변이 카드 화면을 캡처
+- `--mode=shop` : 강제로 웨이브를 종료시켜 소굴 상점 화면을 캡처
+
+> 새 `class_name` 스크립트를 추가한 직후에는 전역 클래스 캐시 갱신이 필요하다:
+> `"<Godot 콘솔 실행파일>" --headless --path . --import`
 
 ## 개발 원칙
 - 능력/동물/변이는 데이터(리소스 .tres)로 분리해 콘텐츠 재사용성을 높인다.

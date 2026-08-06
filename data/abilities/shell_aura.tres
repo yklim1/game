@@ -1,0 +1,22 @@
+[gd_resource type="Resource" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/ability_data.gd" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/attacks/area_field.tscn" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = "shell_aura"
+display_name = "껍질 오라"
+attack_scene = ExtResource("2")
+base_damage = 4.0
+cooldown = 2.4
+attack_kind = 2
+projectile_count = 1
+range = 0.0
+area_radius = 118.0
+duration = 2.4
+tick_interval = 0.4
+color = Color(0.42, 0.62, 0.75, 0.4)
+aim_mode = 0
+rarity = 0
+lineage = Array[String](["방어"])

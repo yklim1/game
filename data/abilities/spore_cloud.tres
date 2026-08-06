@@ -1,0 +1,22 @@
+[gd_resource type="Resource" load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/ability_data.gd" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/attacks/area_field.tscn" id="2"]
+
+[resource]
+script = ExtResource("1")
+id = "spore_cloud"
+display_name = "포자 구름"
+attack_scene = ExtResource("2")
+base_damage = 7.0
+cooldown = 4.0
+attack_kind = 2
+projectile_count = 1
+range = 0.0
+area_radius = 152.0
+duration = 4.4
+tick_interval = 0.6
+color = Color(1, 0.353, 0.847, 0.4)
+aim_mode = 0
+rarity = 1
+lineage = Array[String](["포자"])

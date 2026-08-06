@@ -1,0 +1,20 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/mutation_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "mut_bloom_core"
+display_name = "블룸 코어"
+description = "데미지 +12%, 장판·근접 범위 +10%"
+kind = 0
+payload = {
+"area_pct": 0.1,
+"damage_pct": 0.12
+}
+lineage = Array[String](["포자"])
+rarity = 1
+weight = 1.0
+requires = Array[String]([])
+max_stacks = 3
+cost = 20

@@ -8,14 +8,20 @@ extends Node
 @export var loop_speed_mult: float = 1.06
 @export var loop_damage_mult: float = 1.15
 @export var loop_elite_bonus: float = 0.08
+## 웨이브 종료 후 소굴 상점이 닫힐 때까지 다음 웨이브를 미룬다.
+@export var wait_for_shop: bool = true
+## 마지막 웨이브를 한 번 더 돌 때마다 클리어 보상 먹이에 더해지는 값.
+@export var loop_feed_bonus: int = 4
 
 var _waves: Array[WaveData] = []
 var _current_index: int = -1
 var _loop_count: int = 0
 var _time_left: float = 0.0
+var _awaiting_shop: bool = false
 var _fallback: WaveData
 
 func _ready() -> void:
+	EventBus.shop_closed.connect(_on_shop_closed)
 	_waves = ContentDB.get_waves()
 	if _waves.is_empty():
 		push_warning("WaveDirector: 웨이브 데이터가 없어 기본 웨이브로 진행합니다.")
@@ -27,18 +33,37 @@ func _ready() -> void:
 func begin() -> void:
 	_current_index = -1
 	_loop_count = 0
+	_awaiting_shop = false
 	_start_wave(0)
 
+func is_awaiting_shop() -> bool:
+	return _awaiting_shop
+
 func _process(delta: float) -> void:
-	if RunState.is_game_over or _current_index < 0:
+	if RunState.is_game_over or _current_index < 0 or _awaiting_shop:
 		return
 	var wave: WaveData = get_current_wave()
 	if wave == null or wave.duration <= 0.0:
 		return
 	_time_left -= delta
 	if _time_left <= 0.0:
-		EventBus.wave_ended.emit(wave.index)
+		_end_wave(wave)
+
+func _end_wave(wave: WaveData) -> void:
+	var reward: int = maxi(wave.feed_reward + loop_feed_bonus * _loop_count, 0)
+	if reward > 0:
+		EventBus.feed_collected.emit(reward)
+	EventBus.wave_ended.emit(get_wave_number())
+	if wait_for_shop:
+		_awaiting_shop = true
+	else:
 		_advance()
+
+func _on_shop_closed() -> void:
+	if not _awaiting_shop:
+		return
+	_awaiting_shop = false
+	_advance()
 
 func get_current_wave() -> WaveData:
 	if _current_index < 0 or _current_index >= _waves.size():

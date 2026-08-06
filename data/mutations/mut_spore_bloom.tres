@@ -1,0 +1,19 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/mutation_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "mut_spore_bloom"
+display_name = "포자 개화"
+description = "장판·근접 범위 +18%"
+kind = 0
+payload = {
+"area_pct": 0.18
+}
+lineage = Array[String](["포자"])
+rarity = 0
+weight = 1.0
+requires = Array[String]([])
+max_stacks = 4
+cost = 12

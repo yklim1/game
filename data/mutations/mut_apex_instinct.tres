@@ -1,0 +1,19 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/mutation_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "mut_apex_instinct"
+display_name = "정점의 본능"
+description = "크리티컬 배율 +0.5배"
+kind = 0
+payload = {
+"crit_mult": 0.5
+}
+lineage = Array[String](["포식"])
+rarity = 1
+weight = 1.0
+requires = Array[String]([])
+max_stacks = 2
+cost = 20

@@ -16,3 +16,5 @@ extends Resource
 @export_range(0.0, 1.0) var elite_chance: float = 0.0
 ## 이 웨이브에 등장하는 AnimalData id 목록. 비어 있으면 스폰하지 않는다.
 @export var spawn_ids: Array[String] = []
+## 웨이브 클리어 보상 먹이(소굴 상점 재화). DESIGN.md 4.8.
+@export var feed_reward: int = 8

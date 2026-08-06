@@ -1,0 +1,19 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/mutation_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "mut_feather_graft"
+display_name = "깃털 이식"
+description = "새 능력: 깃털 탄막 (5발 산탄)"
+kind = 1
+payload = {
+"add_ability": "feather_burst"
+}
+lineage = Array[String](["비행"])
+rarity = 1
+weight = 1.2
+requires = Array[String](["not_ability:feather_burst"])
+max_stacks = 1
+cost = 20

@@ -14,3 +14,4 @@ speed_mult = 1.1
 damage_mult = 1.2
 elite_chance = 0.08
 spawn_ids = Array[String](["twisted_boar", "bile_toad"])
+feed_reward = 30

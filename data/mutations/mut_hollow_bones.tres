@@ -1,0 +1,19 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/mutation_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "mut_hollow_bones"
+display_name = "속 빈 뼈"
+description = "이동속도 +10%"
+kind = 0
+payload = {
+"move_speed_pct": 0.1
+}
+lineage = Array[String](["비행"])
+rarity = 0
+weight = 1.1
+requires = Array[String]([])
+max_stacks = 5
+cost = 10

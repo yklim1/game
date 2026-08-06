@@ -1,0 +1,15 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/lineage_synergy_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+lineage = "포자"
+display_name = "포자 계통"
+thresholds = Array[int]([3, 5])
+descriptions = Array[String](["장판·근접 범위 +15%", "픽업 반경 +50%"])
+payloads = Array[Dictionary]([{
+"area_pct": 0.15
+}, {
+"pickup_radius_pct": 0.5
+}])

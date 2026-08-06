@@ -1,0 +1,15 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/lineage_synergy_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+lineage = "방어"
+display_name = "방어 계통"
+thresholds = Array[int]([3, 5])
+descriptions = Array[String](["피해 감소 +10%", "최대 체력 +40"])
+payloads = Array[Dictionary]([{
+"armor_pct": 0.1
+}, {
+"max_health": 40.0
+}])

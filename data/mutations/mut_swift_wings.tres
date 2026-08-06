@@ -1,0 +1,20 @@
+[gd_resource type="Resource" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/resources/mutation_data.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "mut_swift_wings"
+display_name = "빠른 날갯짓"
+description = "쿨다운 7% 감소, 이동속도 +4%"
+kind = 0
+payload = {
+"cooldown_pct": 0.07,
+"move_speed_pct": 0.04
+}
+lineage = Array[String](["비행"])
+rarity = 0
+weight = 1.0
+requires = Array[String]([])
+max_stacks = 4
+cost = 14
