@@ -49,7 +49,8 @@ func _apply_damage(origin: Vector2, dir: Vector2, ability: AbilityData, damage: 
 		if half_arc < PI and absf(dir.angle_to(offset)) > half_arc:
 			continue
 		if animal.has_method("take_damage"):
-			animal.take_damage(damage)
+			# 휘두른 중심에서 바깥으로 밀어낸다(offset 이 0이면 넉백 없음).
+			animal.take_damage(damage, offset.normalized())
 
 func _return_to_pool() -> void:
 	if _pool != null:

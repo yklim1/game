@@ -9,11 +9,14 @@ extends Node
 ## --mode=gameplay : 전투 화면 (기본)
 ## --mode=cards    : 강제로 레벨업시켜 3택 변이 카드 화면
 ## --mode=shop     : 강제로 웨이브를 종료시켜 소굴 상점 화면
+## --mode=juice    : 타격감(히트 플래시·넉백·사망 이펙트·데미지 숫자·화면 흔들림)이 동시에 보이는 순간
 
 const GAME_SCENE_PATH: String = "res://scenes/main/game.tscn"
 const UI_WAIT_LIMIT: float = 3.0
 ## 상점 화면에 구매 가능한 상품이 보이도록 넣어 주는 먹이.
 const SHOP_DEMO_FEED: int = 70
+## 타격감 캡처에서 플레이어 주변에 세우는 표적 수.
+const JUICE_TARGET_COUNT: int = 14
 
 var _delay: float = 6.0
 var _mode: String = "gameplay"
@@ -47,6 +50,8 @@ func _run() -> void:
 			await _open_cards()
 		"shop":
 			await _open_shop()
+		"juice":
+			await _stage_juice()
 	await _capture()
 
 ## 카드가 뜨면 오토파일럿이 바로 골라 버리므로 자동 처리를 끄고 레벨업을 강제한다.
@@ -68,6 +73,55 @@ func _open_shop() -> void:
 	await _wait_until(func() -> bool: return shop.is_open())
 	await _wait(0.4)
 
+## 히트 플래시(0.09s)·사망 조각(0.34s)·데미지 숫자(0.45s)·화면 흔들림이 한 프레임에 겹치도록
+## 표적을 세우고 절반은 살려 두고 절반은 즉사시킨 직후를 캡처한다.
+func _stage_juice() -> void:
+	_autopilot.control_movement = false
+	var player: Player = _game.get_player()
+	var pool: ObjectPool = _game.get_animal_pool()
+	var data: AnimalData = ContentDB.get_animal("spore_ant")
+	var targets: Array[Animal] = []
+	for i in JUICE_TARGET_COUNT:
+		var animal: Animal = pool.acquire() as Animal
+		if animal == null:
+			break
+		var angle: float = TAU * float(i) / float(JUICE_TARGET_COUNT)
+		var radius: float = 96.0 + 22.0 * float(i % 3)
+		# 접촉 피해 0·이동속도 0으로 세워 두면 원하는 순간을 그대로 담을 수 있다.
+		animal.setup(data, player.global_position + Vector2(cos(angle), sin(angle)) * radius, player, 1.0, 0.0, 0.0, false)
+		targets.append(animal)
+	await _wait(0.05)
+	# 실제 플레이에서 나오는 크기의 피해(가시 12 / 발톱 24 등)로 절반은 즉사, 절반은 생존시킨다.
+	for i in targets.size():
+		var direction: Vector2 = (targets[i].global_position - player.global_position).normalized()
+		targets[i].take_damage(24.0 if i % 2 == 0 else 9.0, direction)
+	await _wait(0.06)
+	player.take_damage(6.0)
+	await _wait(0.05)
+	_log_diagnostics()
+
+## 스크린샷을 눈으로 볼 때 필요한 정보(카메라가 실제로 플레이어를 따라가는지, 소리가 나는지).
+func _log_diagnostics() -> void:
+	var player: Player = _game.get_player()
+	var camera: CameraShake = player.get_camera()
+	var screen_pos: Vector2 = get_viewport().get_canvas_transform() * player.global_position
+	print("CAMERA: 플레이어 월드 %s → 화면 %s (뷰포트 중앙 %s) | current=%s offset=%s" % [
+		str(player.global_position.round()),
+		str(screen_pos.round()),
+		str(get_viewport().get_visible_rect().size * 0.5),
+		str(camera.is_current()),
+		str(camera.offset),
+	])
+	var audio: Node = get_node_or_null("/root/AudioManager")
+	if audio == null:
+		return
+	print("AUDIO: 출력 %s | 목소리 %d개 (재생 중 %d) | 재생 횟수 %d" % [
+		"ON" if audio.playback_enabled else "OFF",
+		audio.get_voice_count(),
+		audio.get_playing_voice_count(),
+		audio.get_total_play_count(),
+	])
+
 func _capture() -> void:
 	await RenderingServer.frame_post_draw
 	var image: Image = get_viewport().get_texture().get_image()
@@ -83,6 +137,9 @@ func _capture() -> void:
 		get_tree().quit(1)
 		return
 	print("SCREENSHOT OK: %s (%dx%d) mode=%s" % [absolute, image.get_width(), image.get_height(), _mode])
+	var audio: Node = get_node_or_null("/root/AudioManager")
+	if audio != null:
+		audio.stop_all()
 	get_tree().quit(0)
 
 func _wait(seconds: float) -> void:

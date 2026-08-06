@@ -89,6 +89,7 @@ func _needs_target(ability: AbilityData) -> bool:
 func _fire_volley(ability: AbilityData, base_dir: Vector2) -> void:
 	var count: int = maxi(1, ability.projectile_count)
 	var spread: float = deg_to_rad(ability.spread_deg)
+	EventBus.attack_fired.emit(ability)
 	for i in count:
 		var offset: float = 0.0
 		if count > 1:

@@ -12,6 +12,12 @@ const NODE_COUNT_CEILING: int = 4000
 ## UI 반복 개폐 후 허용하는 노드 수 증가분.
 const UI_NODE_TOLERANCE: int = 4
 const UI_CYCLES: int = 25
+## 화면 흔들림을 반복해도 카메라 오프셋이 정확히 0으로 돌아오는지 볼 횟수.
+const SHAKE_CYCLES: int = 6
+## 대량 사망 최악 조건에서 한 번에 죽이는 적 수.
+const MASS_DEATH_COUNT: int = 400
+## 오디오 폴리포니 검증에서 한 프레임에 몰아 넣는 재생 요청 수.
+const AUDIO_BURST_REQUESTS: int = 300
 
 ## 웨이브 2~3까지 도달해 스케일링을 관측하려면 최소 70초 이상이 필요하다.
 var _combat_seconds: float = 90.0
@@ -75,6 +81,12 @@ func _run_all() -> void:
 	await _case_shop()
 	await _case_synergy()
 	await _case_ui_churn()
+	await _case_hit_feedback()
+	await _case_camera_shake()
+	await _case_hit_stop()
+	await _case_death_effect_pool()
+	await _case_audio()
+	await _case_mass_death()
 	if _run_soak:
 		await _case_soak()
 
@@ -83,7 +95,18 @@ func _run_all() -> void:
 	for failure in _failures:
 		_log("  실패: %s" % failure)
 	_log("RESULT %s" % ("PASS" if _failed == 0 else "FAIL"))
+	await _drain_audio()
 	get_tree().quit(0 if _failed == 0 else 1)
+
+## 재생 중인 효과음을 끊고 몇 프레임 돌려 오디오 서버가 플레이백을 정리하게 한다.
+## (그냥 종료하면 엔진이 "ObjectDB instances leaked" 경고를 남긴다.)
+func _drain_audio() -> void:
+	var audio: Node = get_node_or_null("/root/AudioManager")
+	if audio == null:
+		return
+	audio.stop_all()
+	for _i in 8:
+		await get_tree().process_frame
 
 # ---------------------------------------------------------------- 테스트 케이스
 
@@ -534,8 +557,368 @@ func _case_ui_churn() -> void:
 	])
 	await _stop_game()
 
+func _case_hit_feedback() -> void:
+	_begin("12. 히트 플래시 · 넉백 (피격 시각/물리 피드백)")
+	await _start_game(false, false)
+	if _game == null:
+		return
+	var player: Player = _game.get_player()
+	# 능력 사거리(최대 460px) 밖에 세워 두면 플레이어 공격이 끼어들지 않아 측정이 깨끗하다.
+	var dummies: Array[Animal] = _spawn_dummies(1, 900.0)
+	if dummies.is_empty():
+		_check(false, "테스트용 동물을 풀에서 얻지 못함")
+		return
+	var animal: Animal = dummies[0]
+	await _simulate(0.1)
+	var base_color: Color = animal.get_base_color()
+	_check(animal.get_sprite_color().is_equal_approx(base_color), "피격 전에는 데이터에 정의된 색 (%s)" % _color_text(base_color))
+
+	var pos_before: Vector2 = animal.global_position
+	animal.take_damage(3.0, Vector2.RIGHT)
+	_check(animal.is_hit_flashing(), "피격 직후 히트 플래시 활성")
+	_check(
+		not animal.get_sprite_color().is_equal_approx(base_color),
+		"플래시 중 색이 바뀜 (%s → %s)" % [_color_text(base_color), _color_text(animal.get_sprite_color())]
+	)
+	await _simulate(0.4)
+	_check(not animal.is_hit_flashing(), "%.2fs 후 플래시 종료" % animal.hit_flash_duration)
+	_check(animal.get_sprite_color().is_equal_approx(base_color), "플래시 후 원래 색으로 정확히 복귀")
+
+	var moved: Vector2 = animal.global_position - pos_before
+	_check(moved.x > 4.0, "넉백으로 피격 방향(+X)으로 %.1fpx 이동" % moved.x)
+	_check(absf(moved.y) < absf(moved.x) * 0.5, "넉백 방향이 피격 방향과 일치 (dx=%.1f dy=%.1f)" % [moved.x, moved.y])
+	_check(moved.length() < 80.0, "넉백이 과하지 않음 (%.1fpx < 80px)" % moved.length())
+	var settled: Vector2 = animal.global_position
+	await _simulate(0.5)
+	_check(
+		animal.global_position.distance_to(settled) < 1.0,
+		"넉백이 감쇠해 멈춤 (이후 추가 이동 %.2fpx)" % animal.global_position.distance_to(settled)
+	)
+
+	# 반대 방향으로 때리면 반대로 밀려야 한다.
+	var before_left: Vector2 = animal.global_position
+	animal.take_damage(3.0, Vector2.LEFT)
+	await _simulate(0.4)
+	_check(animal.global_position.x < before_left.x - 4.0, "반대 방향 피격 시 반대로 밀림 (dx=%.1f)" % (animal.global_position.x - before_left.x))
+
+	# 방향 인자가 없으면(장판 등) 넉백 없이 플래시만.
+	var before_none: Vector2 = animal.global_position
+	animal.take_damage(3.0)
+	_check(animal.is_hit_flashing(), "방향 없는 피격도 플래시는 발생")
+	await _simulate(0.3)
+	_check(
+		animal.global_position.distance_to(before_none) < 1.0,
+		"방향 없는 피격은 넉백 없음 (이동 %.2fpx)" % animal.global_position.distance_to(before_none)
+	)
+
+	# 플레이어 무적 프레임 동안 스프라이트 알파가 실제로 오르내려야 한다.
+	var alphas: Dictionary = {}
+	player.take_damage(4.0)
+	_check(player.is_invulnerable(), "피격 후 무적 프레임 진입")
+	for _i in 30:
+		await get_tree().physics_frame
+		alphas[snappedf(player.get_sprite_alpha(), 0.01)] = true
+	_check(alphas.size() >= 2, "무적 프레임 동안 알파가 %d단계로 깜빡임" % alphas.size())
+	await _simulate(1.0)
+	_check(not player.is_invulnerable(), "무적 프레임 종료")
+	_check(is_equal_approx(player.get_sprite_alpha(), 1.0), "무적 종료 후 알파 1.0 복귀 (%.2f)" % player.get_sprite_alpha())
+	await _stop_game()
+
+func _case_camera_shake() -> void:
+	_begin("13. 화면 흔들림 후 카메라 오프셋 0 복귀")
+	await _start_game(false, false)
+	if _game == null:
+		return
+	var player: Player = _game.get_player()
+	var camera: CameraShake = player.get_camera()
+	_check(camera != null, "플레이어 카메라에 CameraShake 적용")
+	if camera == null:
+		return
+	_check(camera.offset == Vector2.ZERO, "시작 시 오프셋 0")
+
+	player.take_damage(6.0)
+	_check(camera.is_shaking(), "플레이어 피격 시 흔들림 시작 (EventBus.player_hit 구독)")
+	var max_offset: float = 0.0
+	for _i in 8:
+		await get_tree().process_frame
+		max_offset = maxf(max_offset, camera.offset.length())
+	_check(max_offset > 0.0, "흔들림 중 오프셋이 실제로 움직임 (최대 %.2fpx)" % max_offset)
+	_check(max_offset <= camera.max_strength * 1.5, "흔들림 폭이 상한 내 (%.2f <= %.2f)" % [max_offset, camera.max_strength * 1.5])
+	await _simulate(1.0)
+	_check(camera.offset == Vector2.ZERO, "흔들림 종료 후 오프셋 정확히 0 (%s)" % str(camera.offset))
+
+	# 반복 흔들림 후에도 매번 정확히 0이어야 한다(누적 드리프트 금지).
+	var drift_failures: int = 0
+	var worst: Vector2 = Vector2.ZERO
+	for _i in SHAKE_CYCLES:
+		camera.shake(9.0, 0.15)
+		await _simulate(0.5)
+		if camera.offset != Vector2.ZERO:
+			drift_failures += 1
+			worst = camera.offset
+	_check(
+		drift_failures == 0,
+		"%d회 반복 흔들림 후에도 매번 오프셋 0 (실패 %d회, 최악 %s)" % [SHAKE_CYCLES, drift_failures, str(worst)]
+	)
+
+	# 흔들리는 중 일시정지 UI가 열리면 오프셋이 남지 않아야 한다(_process 가 멈추므로).
+	var cards: MutationCardScreen = _game.get_mutation_card_screen()
+	camera.shake(10.0, 0.8)
+	await get_tree().process_frame
+	RunState.add_xp(RunState.xp_to_next)
+	await get_tree().process_frame
+	_check(cards.is_open(), "카드 UI 열림")
+	_check(camera.offset == Vector2.ZERO and not camera.is_shaking(), "카드 진입 시 흔들림 초기화 (오프셋 %s)" % str(camera.offset))
+	cards.choose(0)
+	await _simulate(0.2)
+	_check(not get_tree().paused and camera.offset == Vector2.ZERO, "카드 처리 후 재개 + 오프셋 0 유지")
+	await _stop_game()
+
+func _case_hit_stop() -> void:
+	_begin("14. 히트스톱과 카드·상점 일시정지 로직의 공존")
+	_check(is_equal_approx(Engine.time_scale, 1.0), "케이스 시작 시 time_scale 1.0")
+	await _start_game(false, false)
+	if _game == null:
+		return
+	var hit_stop: HitStop = _game.get_hit_stop()
+	var player: Player = _game.get_player()
+	var cards: MutationCardScreen = _game.get_mutation_card_screen()
+	var shop: ShopScreen = _game.get_shop_screen()
+	_check(hit_stop != null, "HitStop 노드 존재")
+	if hit_stop == null:
+		return
+	_check(hit_stop.enabled, "히트스톱 활성 상태로 구성됨 (%.3fs · 배율 %.2f)" % [hit_stop.duration, hit_stop.slow_time_scale])
+
+	player.take_damage(5.0)
+	_check(hit_stop.is_active(), "플레이어 피격 시 히트스톱 발동")
+	_check(Engine.time_scale < 1.0, "히트스톱 중 time_scale 감소 (%.3f)" % Engine.time_scale)
+	await _simulate(0.5)
+	_check(not hit_stop.is_active(), "히트스톱 자동 종료")
+	_check(is_equal_approx(Engine.time_scale, 1.0), "히트스톱 후 time_scale 1.0 복귀 (%.3f)" % Engine.time_scale)
+
+	# 히트스톱 중 레벨업 카드가 뜨면 시간 배율은 즉시 정상으로, 일시정지는 카드 로직이 담당한다.
+	hit_stop.trigger()
+	RunState.add_xp(RunState.xp_to_next)
+	await get_tree().process_frame
+	_check(cards.is_open(), "히트스톱 중에도 카드 UI 정상 표시")
+	_check(is_equal_approx(Engine.time_scale, 1.0), "카드 진입 시 히트스톱 해제 (time_scale %.3f)" % Engine.time_scale)
+	_check(get_tree().paused, "카드 표시 중 기존 일시정지 유지")
+	cards.choose(0)
+	await _simulate(0.2)
+	_check(not get_tree().paused, "카드 선택 후 정상 재개")
+	_check(is_equal_approx(Engine.time_scale, 1.0), "카드 선택 후 time_scale 1.0")
+
+	# 상점도 동일해야 한다.
+	hit_stop.trigger()
+	RunState.feed = 40
+	EventBus.wave_ended.emit(RunState.wave_index)
+	await get_tree().process_frame
+	_check(shop.is_open(), "히트스톱 중에도 상점 정상 표시")
+	_check(is_equal_approx(Engine.time_scale, 1.0), "상점 진입 시 히트스톱 해제")
+	_check(get_tree().paused, "상점 표시 중 일시정지 유지")
+	shop.close()
+	await _simulate(0.2)
+	_check(not get_tree().paused and is_equal_approx(Engine.time_scale, 1.0), "상점 종료 후 재개 + time_scale 1.0")
+
+	# 히트스톱이 걸린 채 씬이 사라져도 전역 time_scale 은 반드시 복구된다.
+	hit_stop.trigger()
+	await _stop_game()
+	_check(is_equal_approx(Engine.time_scale, 1.0), "게임 씬 해제 후 time_scale 복귀 (%.3f)" % Engine.time_scale)
+
+func _case_death_effect_pool() -> void:
+	_begin("15. 사망 이펙트 · 데미지 숫자 풀링")
+	await _start_game(false, false)
+	if _game == null:
+		return
+	var effects: EffectManager = _game.get_effect_manager()
+	_check(effects != null, "EffectManager 존재")
+	if effects == null:
+		return
+	var burst_pool: ObjectPool = effects.get_burst_pool()
+	var number_pool: ObjectPool = effects.get_number_pool()
+	_check(burst_pool != null and number_pool != null, "사망 이펙트·데미지 숫자 풀 존재")
+	var acquire_before: int = burst_pool.get_acquire_count()
+	var number_acquire_before: int = number_pool.get_acquire_count()
+	var nodes_before: int = _node_count()
+
+	# 60마리를 세 번 몰살시켜 이펙트가 계속 재사용되는지 본다.
+	var killed: int = 0
+	for _batch in 3:
+		for animal in _spawn_dummies(60, 900.0):
+			animal.take_damage(999999.0, Vector2.RIGHT)
+			killed += 1
+		await _simulate(0.6)
+	var burst_acquires: int = burst_pool.get_acquire_count() - acquire_before
+	var number_acquires: int = number_pool.get_acquire_count() - number_acquire_before
+	_check(killed >= 150, "%d마리 몰살 처리" % killed)
+	_check(burst_acquires > 0, "사망 이펙트가 %d회 대여됨" % burst_acquires)
+	_check(
+		burst_acquires > burst_pool.get_total_count(),
+		"사망 이펙트 재사용 확인 (대여 %d회 > 인스턴스 %d개)" % [burst_acquires, burst_pool.get_total_count()]
+	)
+	_check(
+		burst_pool.get_total_count() <= effects.max_active_bursts,
+		"사망 이펙트 풀이 상한 내 (%d <= %d)" % [burst_pool.get_total_count(), effects.max_active_bursts]
+	)
+	_check(number_acquires > 0, "데미지 숫자가 %d회 대여됨" % number_acquires)
+	_check(
+		number_pool.get_total_count() <= effects.max_active_numbers,
+		"데미지 숫자 풀이 상한 내 (%d <= %d)" % [number_pool.get_total_count(), effects.max_active_numbers]
+	)
+	await _simulate(1.2)
+	_check(effects.get_active_burst_count() == 0, "수명이 끝난 사망 이펙트 전부 반환 (활성 %d개)" % effects.get_active_burst_count())
+	_check(effects.get_active_number_count() == 0, "수명이 끝난 데미지 숫자 전부 반환 (활성 %d개)" % effects.get_active_number_count())
+	_log("    이펙트 노드: 사망 %d개 / 숫자 %d개 (노드 총계 %d → %d)" % [
+		burst_pool.get_total_count(), number_pool.get_total_count(), nodes_before, _node_count()
+	])
+	await _stop_game()
+
+func _case_audio() -> void:
+	_begin("16. 효과음 재생 · 오디오 플레이어 폴리포니")
+	var audio: Node = get_node_or_null("/root/AudioManager")
+	_check(audio != null, "AudioManager 오토로드 존재")
+	if audio == null:
+		return
+	var required: PackedStringArray = ["shoot", "hit", "kill", "player_hurt", "pickup", "level_up", "buy", "game_over"]
+	var missing: Array[String] = []
+	for sfx_id in required:
+		if not audio.has_stream(sfx_id):
+			missing.append(sfx_id)
+	_check(missing.is_empty(), "필요한 효과음 %d종 모두 로드 (누락: %s)" % [required.size(), "없음" if missing.is_empty() else ", ".join(missing)])
+	var voices: int = audio.get_voice_count()
+	_check(voices == audio.max_voices, "오디오 플레이어가 %d개로 고정 생성" % voices)
+
+	# 폴리포니: 한 프레임에 수백 번 요청해도 오디오 노드가 늘지 않아야 한다.
+	# 헤드리스는 기본적으로 출력이 꺼져 있으니 이 구간만 실제 재생을 켜서 목소리 재사용까지 본다.
+	var playback_was_enabled: bool = audio.playback_enabled
+	audio.playback_enabled = true
+	var nodes_before: int = _node_count()
+	for _i in AUDIO_BURST_REQUESTS:
+		audio.play("hit", 0.0)
+	await _simulate(0.3)
+	_check(_node_count() <= nodes_before, "%d회 연속 재생 요청 후 노드 수 유지 (%d → %d)" % [AUDIO_BURST_REQUESTS, nodes_before, _node_count()])
+	_check(audio.get_voice_count() == voices, "요청 폭주 후에도 오디오 플레이어 수 불변 (%d개)" % audio.get_voice_count())
+	_check(
+		audio.get_playing_voice_count() <= voices,
+		"동시 재생이 폴리포니 상한 이하 (%d <= %d)" % [audio.get_playing_voice_count(), voices]
+	)
+	audio.stop_all()
+	audio.playback_enabled = playback_was_enabled
+
+	# 실제 전투에서 발사·피격·처치 효과음이 트리거되는지.
+	await _start_game(true)
+	if _game == null:
+		return
+	audio.reset_play_counts()
+	# 적은 화면 밖(780px)에서 스폰되므로 사거리(460px) 안으로 들어올 시간을 준다.
+	await _simulate(8.0)
+	_check(audio.get_play_count("shoot") > 0, "능력 발동 시 발사 효과음 %d회" % audio.get_play_count("shoot"))
+	_check(audio.get_play_count("hit") > 0, "적 피격 시 피격 효과음 %d회" % audio.get_play_count("hit"))
+	if audio.get_play_count("kill") == 0:
+		for animal in _spawn_dummies(3, 900.0):
+			animal.take_damage(999999.0)
+		await _simulate(0.2)
+	_check(audio.get_play_count("kill") > 0, "적 사망 시 처치 효과음 %d회" % audio.get_play_count("kill"))
+
+	var hurt_before: int = audio.get_play_count("player_hurt")
+	_game.get_player().take_damage(3.0)
+	await _simulate(0.2)
+	_check(audio.get_play_count("player_hurt") > hurt_before, "플레이어 피격 효과음 재생 (%d회)" % audio.get_play_count("player_hurt"))
+
+	var pickup_before: int = audio.get_play_count("pickup")
+	await _simulate(0.2)
+	EventBus.feed_collected.emit(1)
+	await _simulate(0.1)
+	_check(audio.get_play_count("pickup") > pickup_before, "아이템/젬 획득 효과음 재생 (%d회)" % audio.get_play_count("pickup"))
+
+	var level_before: int = audio.get_play_count("level_up")
+	RunState.add_xp(RunState.xp_to_next)
+	await _simulate(0.2)
+	_check(audio.get_play_count("level_up") > level_before, "레벨업 효과음 재생 (%d회)" % audio.get_play_count("level_up"))
+
+	# 상점 구매는 오토파일럿을 잠시 끄고 직접 구매해 확인한다.
+	_autopilot.auto_resolve_ui = false
+	var shop: ShopScreen = _game.get_shop_screen()
+	var buy_before: int = audio.get_play_count("buy")
+	RunState.feed = 90
+	EventBus.wave_ended.emit(RunState.wave_index)
+	await _simulate(0.2)
+	# 중복 상한에 걸린 상품이 있을 수 있으니 살 수 있는 칸을 찾아 구매한다.
+	var bought: bool = false
+	if shop.is_open():
+		for i in shop.get_offers().size():
+			if shop.get_offers()[i] != null and shop.buy(i):
+				bought = true
+				break
+	await _simulate(0.1)
+	_check(bought, "상점에서 실제 구매 성공")
+	_check(audio.get_play_count("buy") > buy_before, "상점 구매 효과음 재생 (%d회)" % audio.get_play_count("buy"))
+	shop.close()
+	await _simulate(0.1)
+	_autopilot.auto_resolve_ui = true
+
+	var over_before: int = audio.get_play_count("game_over")
+	_game.get_player().take_damage(_game.get_player().get_max_health() * 10.0)
+	await _simulate(0.2)
+	_check(audio.get_play_count("game_over") > over_before, "게임오버 효과음 재생 (%d회)" % audio.get_play_count("game_over"))
+
+	_check(audio.get_voice_count() == voices, "전체 이벤트 재생 후에도 오디오 노드 %d개 유지" % audio.get_voice_count())
+	_log("    효과음 재생 횟수: %s" % _audio_count_text(audio, required))
+	get_tree().paused = false
+	await _stop_game()
+
+func _case_mass_death() -> void:
+	_begin("17. 대량 사망 최악 조건 (이펙트·오디오 동시 부하)")
+	await _start_game(true)
+	if _game == null:
+		return
+	var audio: Node = get_node_or_null("/root/AudioManager")
+	var effects: EffectManager = _game.get_effect_manager()
+	var pool: ObjectPool = _game.get_animal_pool()
+	var dummies: Array[Animal] = _spawn_dummies(MASS_DEATH_COUNT, 0.0)
+	_check(dummies.size() >= MASS_DEATH_COUNT - 20, "동시 적 %d마리 확보" % dummies.size())
+	var steady: SimMetrics = SimMetrics.new()
+	await _simulate(3.0, steady)
+
+	var burst: SimMetrics = SimMetrics.new()
+	var nodes_before: int = _node_count()
+	var voices_before: int = 0 if audio == null else audio.get_voice_count()
+	var alive_before: int = _alive_count()
+	# 한 프레임에 전부 죽여 사망 이펙트·효과음·젬 드롭이 동시에 몰리는 최악 조건을 만든다.
+	for animal in dummies:
+		if is_instance_valid(animal):
+			animal.take_damage(999999.0, Vector2.RIGHT)
+	await get_tree().physics_frame
+	var removed: int = alive_before - _alive_count()
+	await _simulate(3.0, burst)
+
+	_log("    적 %d마리 유지    | 평균 프레임 %6.3f ms | 최대 %6.3f ms" % [
+		steady.max_alive, steady.avg_frame_ms(), steady.max_frame_ms()
+	])
+	_log("    동시 사망 %d마리 | 평균 프레임 %6.3f ms | 최대 %6.3f ms" % [
+		dummies.size(), burst.avg_frame_ms(), burst.max_frame_ms()
+	])
+	_check(burst.max_frame_ms() < 50.0, "대량 사망 최악 프레임 %.2f ms < 50 ms (헤드리스=렌더 비용 제외)" % burst.max_frame_ms())
+	_check(
+		removed >= MASS_DEATH_COUNT - 40,
+		"한 프레임에 %d마리 동시 사망 처리 (%d → %d)" % [removed, alive_before, alive_before - removed]
+	)
+	_check(
+		effects.get_burst_pool().get_total_count() <= effects.max_active_bursts,
+		"대량 사망에도 사망 이펙트 풀 상한 유지 (%d <= %d)" % [effects.get_burst_pool().get_total_count(), effects.max_active_bursts]
+	)
+	_check(
+		effects.get_number_pool().get_total_count() <= effects.max_active_numbers,
+		"대량 사망에도 데미지 숫자 풀 상한 유지 (%d <= %d)" % [effects.get_number_pool().get_total_count(), effects.max_active_numbers]
+	)
+	if audio != null:
+		_check(audio.get_voice_count() == voices_before, "대량 사망에도 오디오 플레이어 %d개 유지" % audio.get_voice_count())
+	_check(pool.get_total_count() <= 640, "동물 풀 크기 제한 유지 (%d개)" % pool.get_total_count())
+	_log("    노드 수 %d → %d (젬 드롭 포함)" % [nodes_before, _node_count()])
+	await _stop_game()
+
 func _case_soak() -> void:
-	_begin("12. 소크 테스트 (%.0f초 시뮬레이션)" % _soak_seconds)
+	_begin("18. 소크 테스트 (%.0f초 시뮬레이션)" % _soak_seconds)
 	var metrics: SimMetrics = SimMetrics.new()
 	var deaths: int = 0
 	var total_kills: int = 0
@@ -608,6 +991,35 @@ func _case_soak() -> void:
 	_check(orphans == 0, "고아 노드 0개 (실제 %d개)" % orphans)
 
 # ---------------------------------------------------------------- 유틸
+
+## 측정용 허수아비 동물. 이동속도·접촉피해 0, HP 를 크게 줘서 조건을 고정한다.
+## distance 가 0이면 기존 부하 테스트와 같은 링(260~720px)에 흩뿌린다.
+func _spawn_dummies(count: int, distance: float) -> Array[Animal]:
+	var result: Array[Animal] = []
+	if _game == null:
+		return result
+	var player: Player = _game.get_player()
+	var data: AnimalData = ContentDB.get_animal("spore_ant")
+	for i in count:
+		var animal: Animal = _game.get_animal_pool().acquire() as Animal
+		if animal == null:
+			break
+		var pos: Vector2 = _ring_position(player.global_position)
+		if distance > 0.0:
+			var angle: float = TAU * float(i) / float(maxi(count, 1))
+			pos = player.global_position + Vector2(cos(angle), sin(angle)) * distance
+		animal.setup(data, pos, player, 400.0, 0.0, 0.0, false)
+		result.append(animal)
+	return result
+
+func _color_text(color: Color) -> String:
+	return "rgba(%.2f, %.2f, %.2f, %.2f)" % [color.r, color.g, color.b, color.a]
+
+func _audio_count_text(audio: Node, ids: PackedStringArray) -> String:
+	var parts: Array[String] = []
+	for sfx_id in ids:
+		parts.append("%s=%d" % [sfx_id, audio.get_play_count(sfx_id)])
+	return ", ".join(parts)
 
 func _ring_position(center: Vector2) -> Vector2:
 	var angle: float = randf() * TAU

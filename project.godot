@@ -17,6 +17,11 @@ run/main_scene="res://scenes/main/game.tscn"
 EventBus="*res://scripts/autoload/event_bus.gd"
 ContentDB="*res://scripts/autoload/content_db.gd"
 RunState="*res://scripts/autoload/run_state.gd"
+AudioManager="*res://scripts/autoload/audio_manager.gd"
+
+[audio]
+
+buses/default_bus_layout="res://assets/audio/default_bus_layout.tres"
 
 [display]
 

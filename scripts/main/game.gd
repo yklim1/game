@@ -9,6 +9,8 @@ extends Node2D
 @onready var _spawner: AnimalSpawner = $AnimalSpawner
 @onready var _wave_director: WaveDirector = $WaveDirector
 @onready var _pickup_manager: PickupManager = $PickupManager
+@onready var _effect_manager: EffectManager = $EffectManager
+@onready var _hit_stop: HitStop = $HitStop
 @onready var _game_over_panel: Control = $UI/GameOver
 @onready var _mutation_cards: MutationCardScreen = $UI/MutationCards
 @onready var _shop: ShopScreen = $UI/Shop
@@ -46,6 +48,12 @@ func get_wave_director() -> WaveDirector:
 
 func get_pickup_manager() -> PickupManager:
 	return _pickup_manager
+
+func get_effect_manager() -> EffectManager:
+	return _effect_manager
+
+func get_hit_stop() -> HitStop:
+	return _hit_stop
 
 func get_mutation_card_screen() -> MutationCardScreen:
 	return _mutation_cards

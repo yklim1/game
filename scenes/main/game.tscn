@@ -1,4 +1,4 @@
-[gd_scene load_steps=14 format=3]
+[gd_scene load_steps=18 format=3]
 
 [ext_resource type="Script" path="res://scripts/main/game.gd" id="1"]
 [ext_resource type="PackedScene" path="res://scenes/player/player.tscn" id="2"]
@@ -13,6 +13,10 @@
 [ext_resource type="Script" path="res://scripts/ui/game_over.gd" id="11"]
 [ext_resource type="PackedScene" path="res://scenes/ui/mutation_card_screen.tscn" id="12"]
 [ext_resource type="PackedScene" path="res://scenes/ui/shop_screen.tscn" id="13"]
+[ext_resource type="Script" path="res://scripts/systems/effect_manager.gd" id="14"]
+[ext_resource type="PackedScene" path="res://scenes/effects/death_burst.tscn" id="15"]
+[ext_resource type="PackedScene" path="res://scenes/effects/damage_number.tscn" id="16"]
+[ext_resource type="Script" path="res://scripts/systems/hit_stop.gd" id="17"]
 
 [node name="Game" type="Node2D"]
 script = ExtResource("1")
@@ -50,6 +54,22 @@ script = ExtResource("7")
 
 [node name="PickupManager" type="Node2D" parent="."]
 script = ExtResource("9")
+
+[node name="EffectManager" type="Node2D" parent="."]
+script = ExtResource("14")
+
+[node name="DeathBurstPool" type="Node2D" parent="EffectManager"]
+script = ExtResource("3")
+scene = ExtResource("15")
+initial_size = 24
+
+[node name="DamageNumberPool" type="Node2D" parent="EffectManager"]
+script = ExtResource("3")
+scene = ExtResource("16")
+initial_size = 24
+
+[node name="HitStop" type="Node" parent="."]
+script = ExtResource("17")
 
 [node name="UI" type="CanvasLayer" parent="."]
 

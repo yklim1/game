@@ -4,6 +4,12 @@ extends Node
 signal player_health_changed(current: float, maximum: float)
 signal player_died
 signal animal_died(position: Vector2, data: AnimalData, essence_value: int)
+## 타격 피드백(데미지 숫자/효과음)용. 실제 피해가 들어간 순간마다 발행된다.
+signal animal_hit(position: Vector2, damage: float)
+## 플레이어가 실제로 피해를 입은 순간(회피/무적으로 막힌 경우는 발행하지 않는다).
+signal player_hit(damage: float)
+## 능력이 발동해 공격을 생성한 순간(발사 효과음용). 연사 1회당 1번.
+signal attack_fired(ability: AbilityData)
 signal essence_collected(value: int)
 signal feed_collected(value: int)
 signal xp_changed(current_xp: int, xp_to_next: int, level: int)

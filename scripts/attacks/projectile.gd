@@ -50,7 +50,7 @@ func _on_body_entered(body: Node) -> void:
 	if _released or not body.is_in_group("animal"):
 		return
 	if body.has_method("take_damage"):
-		body.take_damage(_damage)
+		body.take_damage(_damage, _direction)
 	_pierce_left -= 1
 	if _pierce_left < 0:
 		_return_to_pool()

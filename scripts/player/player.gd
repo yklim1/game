@@ -9,6 +9,10 @@ extends CharacterBody2D
 @export var iframe_duration: float = 0.5
 ## 변이로 최대 체력이 오를 때 그만큼 즉시 회복시킨다.
 @export var heal_on_max_health_gain: bool = true
+## 무적 프레임 동안 깜빡이는 횟수(초당). 0이면 깜빡이지 않고 반투명만 유지한다.
+@export var iframe_blink_hz: float = 9.0
+## 깜빡임의 어두운 쪽 알파.
+@export_range(0.0, 1.0) var iframe_min_alpha: float = 0.25
 
 var _health: float = 0.0
 var _max_health_total: float = 0.0
@@ -18,6 +22,7 @@ var _alive: bool = true
 @onready var _sprite: Sprite2D = $Sprite
 @onready var _hurtbox: Area2D = $Hurtbox
 @onready var _ability_manager: AbilityManager = $AbilityManager
+@onready var _camera: CameraShake = $Camera2D
 
 func _ready() -> void:
 	add_to_group("player")
@@ -30,6 +35,16 @@ func _ready() -> void:
 
 func get_ability_manager() -> AbilityManager:
 	return _ability_manager
+
+func get_camera() -> CameraShake:
+	return _camera
+
+func is_invulnerable() -> bool:
+	return _iframe_left > 0.0
+
+## 무적 프레임 깜빡임 확인용. 평상시에는 1.0이다.
+func get_sprite_alpha() -> float:
+	return _sprite.modulate.a
 
 func get_health() -> float:
 	return _health
@@ -55,7 +70,17 @@ func _update_iframe(delta: float) -> void:
 		return
 	_iframe_left -= delta
 	if _iframe_left <= 0.0:
+		_iframe_left = 0.0
 		_sprite.modulate.a = 1.0
+		return
+	_sprite.modulate.a = _blink_alpha()
+
+## 무적 시간이 남아 있는 동안 알파를 오르내리게 해 "지금 무적"임을 보여 준다.
+func _blink_alpha() -> float:
+	if iframe_blink_hz <= 0.0:
+		return iframe_min_alpha
+	var phase: float = _iframe_left * iframe_blink_hz
+	return iframe_min_alpha if int(phase * 2.0) % 2 == 0 else 1.0
 
 func _check_contact_damage() -> void:
 	if _iframe_left > 0.0:
@@ -73,9 +98,11 @@ func take_damage(amount: float) -> void:
 	if RunState.dodge_chance > 0.0 and randf() < RunState.dodge_chance:
 		_iframe_left = iframe_duration * 0.5
 		return
-	_health -= amount * (1.0 - RunState.armor)
+	var taken: float = amount * (1.0 - RunState.armor)
+	_health -= taken
 	_iframe_left = iframe_duration
-	_sprite.modulate.a = 0.4
+	_sprite.modulate.a = iframe_min_alpha
+	EventBus.player_hit.emit(taken)
 	EventBus.player_health_changed.emit(maxf(_health, 0.0), _max_health_total)
 	if _health <= 0.0:
 		_die()
@@ -104,5 +131,7 @@ func _die() -> void:
 	if not _alive:
 		return
 	_alive = false
+	_iframe_left = 0.0
+	_sprite.modulate.a = 1.0
 	set_physics_process(false)
 	EventBus.player_died.emit()
