@@ -10,12 +10,18 @@ extends Node2D
 @export var speed_max: float = 230.0
 ## 조각이 시간이 지나며 느려지는 비율(1.0 = 감속 없음).
 @export_range(0.0, 1.0) var drag: float = 0.86
+## 플레이스홀더 조각의 스케일. shard_size 가 0일 때의 기준 크기를 만든다.
 @export var shard_scale: float = 0.05
+## 실제 조각 스프라이트(투명 PNG). 동물 색으로 물들여 쓰므로 흰색/무채색 아트를 권장한다.
+@export var shard_texture: Texture2D
+## 조각 표시 크기(px, 긴 변). 0이면 shard_scale 로 계산한 씬 기본 크기를 유지한다.
+@export var shard_size: float = 0.0
 
 var _pool: ObjectPool
 var _life_left: float = 0.0
 var _shards: Array[Sprite2D] = []
 var _velocities: Array[Vector2] = []
+var _shard_base_scale: float = 1.0
 
 func _ready() -> void:
 	for child in get_children():
@@ -23,6 +29,19 @@ func _ready() -> void:
 		if shard != null:
 			_shards.append(shard)
 			_velocities.append(Vector2.ZERO)
+	_apply_shard_texture()
+
+## 조각은 데이터가 아니라 씬 단위로 정해지므로 한 번만 적용하고 스케일 기준값을 캐싱한다.
+func _apply_shard_texture() -> void:
+	if _shards.is_empty():
+		return
+	var fallback: Texture2D = _shards[0].texture
+	var size: float = shard_size
+	if size <= 0.0:
+		size = SpriteVisual.texture_extent(fallback) * shard_scale
+	for shard in _shards:
+		SpriteVisual.apply(shard, shard_texture, fallback, size)
+	_shard_base_scale = _shards[0].scale.x
 
 func set_pool(pool: ObjectPool) -> void:
 	_pool = pool
@@ -42,7 +61,7 @@ func setup(spawn_pos: Vector2, color: Color) -> void:
 		_velocities[i] = Vector2(cos(angle), sin(angle)) * randf_range(speed_min, speed_max)
 		shard.visible = true
 		shard.position = Vector2.ZERO
-		shard.scale = Vector2.ONE * shard_scale
+		shard.scale = Vector2.ONE * _shard_base_scale
 		shard.self_modulate = color
 
 func on_acquire() -> void:
@@ -68,7 +87,7 @@ func _process(delta: float) -> void:
 		shard.position += _velocities[i] * delta
 		_velocities[i] *= damping
 		shard.self_modulate.a = ratio
-		shard.scale = Vector2.ONE * shard_scale * (0.4 + 0.6 * ratio)
+		shard.scale = Vector2.ONE * _shard_base_scale * (0.4 + 0.6 * ratio)
 
 func _return_to_pool() -> void:
 	if _pool != null:

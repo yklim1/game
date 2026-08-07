@@ -30,6 +30,17 @@ window/size/viewport_height=720
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
 
+[importer_defaults]
+
+; 새로 추가되는 스프라이트(PNG)의 임포트 기본값. 근거는 docs/ART_ASSET_SPEC.md 참고.
+; 이미 임포트된 파일에는 적용되지 않으므로(파일별 .import 가 우선) 기존 파일은 .import 를 지우고 재임포트해야 한다.
+texture={
+"compress/mode": 0,
+"detect_3d/compress_to": 0,
+"mipmaps/generate": true,
+"process/fix_alpha_border": true
+}
+
 [input]
 
 move_left={
@@ -67,3 +78,5 @@ restart={
 
 renderer/rendering_method="gl_compatibility"
 renderer/rendering_method.mobile="gl_compatibility"
+; 카툰 스프라이트를 축소해 그리므로 선형 필터 + 밉맵(3)으로 계단/깜빡임을 줄인다(픽셀아트가 아니라 Nearest 아님).
+textures/canvas_textures/default_texture_filter=3

@@ -9,11 +9,16 @@ var _damage: float = 0.0
 var _life_left: float = 0.0
 var _pierce_left: int = 0
 var _released: bool = true
+var _fallback_texture: Texture2D
+var _fallback_size: float = 0.0
 
 @onready var _sprite: Sprite2D = $Sprite
 
 func _ready() -> void:
 	body_entered.connect(_on_body_entered)
+	# 여러 능력이 같은 투사체 씬(=같은 풀)을 공유하므로 폴백 텍스처와 기본 크기를 기억해 둔다.
+	_fallback_texture = _sprite.texture
+	_fallback_size = SpriteVisual.measure_display_size(_sprite)
 
 func set_pool(pool: ObjectPool) -> void:
 	_pool = pool
@@ -26,7 +31,9 @@ func setup(ability: AbilityData, origin: Vector2, dir: Vector2, damage: float) -
 	_life_left = ability.projectile_lifetime
 	_pierce_left = ability.pierce
 	rotation = dir.angle()
-	_sprite.self_modulate = ability.color
+	var size: float = ability.projectile_size if ability.projectile_size > 0.0 else _fallback_size
+	var uses_art: bool = SpriteVisual.apply(_sprite, ability.attack_texture, _fallback_texture, size)
+	_sprite.self_modulate = SpriteVisual.resolve_tint(uses_art, ability.color, ability.tint_attack_texture)
 
 func on_acquire() -> void:
 	_released = false

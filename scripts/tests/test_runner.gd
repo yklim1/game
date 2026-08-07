@@ -87,6 +87,7 @@ func _run_all() -> void:
 	await _case_death_effect_pool()
 	await _case_audio()
 	await _case_mass_death()
+	await _case_sprite_pipeline()
 	if _run_soak:
 		await _case_soak()
 
@@ -917,8 +918,95 @@ func _case_mass_death() -> void:
 	_log("    노드 수 %d → %d (젬 드롭 포함)" % [nodes_before, _node_count()])
 	await _stop_game()
 
+func _case_sprite_pipeline() -> void:
+	_begin("18. 스프라이트 데이터 주도 교체 · 플레이스홀더 폴백")
+	await _start_game(false, false)
+	if _game == null:
+		return
+	var player: Player = _game.get_player()
+	var placeholder: AnimalData = ContentDB.get_animal("spore_ant")
+	# 실제 아트가 아직 없으므로 런타임 텍스처로 대신한다(저장소에 파일을 남기지 않는다).
+	var art_data: AnimalData = placeholder.duplicate() as AnimalData
+	art_data.sprite = _make_test_texture(96, 48)
+	art_data.sprite_size = 40.0
+
+	var animal: Animal = _game.get_animal_pool().acquire() as Animal
+	_check(animal != null, "테스트용 동물을 풀에서 확보")
+	if animal == null:
+		return
+	var sprite: Sprite2D = animal.get_node("Sprite") as Sprite2D
+	var far_pos: Vector2 = player.global_position + Vector2(900.0, 0.0)
+	animal.setup(art_data, far_pos, player, 1.0, 0.0, 0.0, false)
+	_check(animal.is_using_sprite_art(), ".tres 에 지정한 텍스처로 그려짐")
+	_check(sprite.texture == art_data.sprite, "Sprite2D 에 데이터의 텍스처가 적용됨")
+	_check(
+		is_equal_approx(SpriteVisual.measure_display_size(sprite), art_data.sprite_size),
+		"원본 96×48 텍스처가 표시 크기 %.0fpx 로 정규화됨 (실제 %.1fpx)" % [
+			art_data.sprite_size, SpriteVisual.measure_display_size(sprite)
+		]
+	)
+	_check(sprite.modulate.is_equal_approx(Color.WHITE), "실제 아트에는 데이터 색이 덧칠되지 않음 (%s)" % _color_text(sprite.modulate))
+
+	# 타격감: 텍스처에서도 플래시가 보여야 하고, 원래 색으로 정확히 복귀해야 한다.
+	var art_base: Color = animal.get_base_color()
+	animal.take_damage(1.0)
+	_check(animal.is_hit_flashing(), "텍스처 스프라이트도 피격 시 플래시 활성")
+	_check(
+		animal.get_sprite_color().r > art_base.r,
+		"플래시가 흰색 덮어쓰기가 아니라 밝히기로 동작 (%.2f → %.2f)" % [art_base.r, animal.get_sprite_color().r]
+	)
+	await _simulate(0.4)
+	_check(animal.get_sprite_color().is_equal_approx(art_base), "텍스처 스프라이트도 플래시 후 원래 색 복귀")
+
+	# 같은 풀 노드를 텍스처 없는 데이터로 재사용 → 플레이스홀더로 되돌아와야 한다(점진 교체 대응).
+	animal.setup(placeholder, far_pos, player, 1.0, 0.0, 0.0, false)
+	_check(not animal.is_using_sprite_art(), "텍스처가 없는 데이터는 플레이스홀더로 폴백")
+	_check(sprite.texture != art_data.sprite, "폴백 시 씬 기본 텍스처로 되돌아감")
+	_check(sprite.modulate.is_equal_approx(placeholder.color), "폴백은 데이터 색으로 물들여 그려짐 (%s)" % _color_text(sprite.modulate))
+	_check(
+		is_equal_approx(SpriteVisual.measure_display_size(sprite), placeholder.radius * 2.0),
+		"폴백 크기 = 충돌 반경 기준 %.0fpx (실제 %.1fpx)" % [placeholder.radius * 2.0, SpriteVisual.measure_display_size(sprite)]
+	)
+	animal.take_damage(999999.0)
+
+	# 능력(투사체)도 같은 규칙으로 동작해야 한다.
+	var ability: AbilityData = ContentDB.get_ability("thorn_shot")
+	var ability_art: AbilityData = ability.duplicate() as AbilityData
+	ability_art.attack_texture = _make_test_texture(64, 32)
+	ability_art.projectile_size = 24.0
+	var pool: ObjectPool = _game.get_attack_pools().get_pool(ability.attack_scene)
+	var projectile: Node = pool.acquire()
+	_check(projectile != null, "투사체를 풀에서 확보")
+	if projectile == null:
+		await _stop_game()
+		return
+	var projectile_sprite: Sprite2D = projectile.get_node("Sprite") as Sprite2D
+	projectile.setup(ability_art, far_pos, Vector2.RIGHT, 1.0)
+	_check(projectile_sprite.texture == ability_art.attack_texture, "능력 .tres 의 attack_texture 가 투사체에 적용됨")
+	_check(
+		is_equal_approx(SpriteVisual.measure_display_size(projectile_sprite), ability_art.projectile_size),
+		"투사체 표시 크기 %.0fpx 로 정규화 (실제 %.1fpx)" % [
+			ability_art.projectile_size, SpriteVisual.measure_display_size(projectile_sprite)
+		]
+	)
+	projectile.setup(ability, far_pos, Vector2.RIGHT, 1.0)
+	_check(projectile_sprite.texture != ability_art.attack_texture, "텍스처 없는 능력은 플레이스홀더로 폴백")
+	_check(
+		projectile_sprite.self_modulate.is_equal_approx(ability.color),
+		"폴백 투사체는 능력 색으로 물듦 (%s)" % _color_text(projectile_sprite.self_modulate)
+	)
+	pool.release(projectile)
+	await _simulate(0.2)
+	await _stop_game()
+
+## 실제 아트 없이 텍스처 경로를 검증하기 위한 런타임 생성 텍스처.
+func _make_test_texture(width: int, height: int) -> Texture2D:
+	var image: Image = Image.create_empty(width, height, false, Image.FORMAT_RGBA8)
+	image.fill(Color(1.0, 0.353, 0.847, 1.0))
+	return ImageTexture.create_from_image(image)
+
 func _case_soak() -> void:
-	_begin("18. 소크 테스트 (%.0f초 시뮬레이션)" % _soak_seconds)
+	_begin("19. 소크 테스트 (%.0f초 시뮬레이션)" % _soak_seconds)
 	var metrics: SimMetrics = SimMetrics.new()
 	var deaths: int = 0
 	var total_kills: int = 0

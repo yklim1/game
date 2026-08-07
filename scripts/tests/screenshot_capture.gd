@@ -10,8 +10,12 @@ extends Node
 ## --mode=cards    : 강제로 레벨업시켜 3택 변이 카드 화면
 ## --mode=shop     : 강제로 웨이브를 종료시켜 소굴 상점 화면
 ## --mode=juice    : 타격감(히트 플래시·넉백·사망 이펙트·데미지 숫자·화면 흔들림)이 동시에 보이는 순간
+## --mode=sprite   : 적 일부에만 런타임 생성 텍스처를 지정해 "실제 스프라이트 + 폴백" 혼재 상태를 확인
+## --sprite-test   : 다른 모드와 조합해 위 텍스처 지정을 함께 적용(예: juice + 텍스처 히트 플래시)
 
 const GAME_SCENE_PATH: String = "res://scenes/main/game.tscn"
+## --mode=sprite 에서 텍스처를 지정해 볼 동물 id. 나머지 동물은 플레이스홀더로 남아 혼재 상태를 보여 준다.
+const SPRITE_TEST_ANIMAL_IDS: PackedStringArray = ["spore_ant", "rabid_hare"]
 const UI_WAIT_LIMIT: float = 3.0
 ## 상점 화면에 구매 가능한 상품이 보이도록 넣어 주는 먹이.
 const SHOP_DEMO_FEED: int = 70
@@ -21,6 +25,7 @@ const JUICE_TARGET_COUNT: int = 14
 var _delay: float = 6.0
 var _mode: String = "gameplay"
 var _out_path: String = "docs/screenshots/phase3.png"
+var _sprite_test: bool = false
 
 var _game: Node
 var _autopilot: TestAutopilot
@@ -34,6 +39,8 @@ func _ready() -> void:
 			_out_path = arg.split("=")[1]
 		elif arg.begins_with("--mode="):
 			_mode = arg.split("=")[1]
+		elif arg == "--sprite-test":
+			_sprite_test = true
 	_run.call_deferred()
 
 func _run() -> void:
@@ -44,6 +51,9 @@ func _run() -> void:
 	_autopilot.set_ui(_game.get_mutation_card_screen(), _game.get_shop_screen())
 	get_tree().root.add_child(_autopilot)
 
+	# 스폰되는 적이 처음부터 텍스처로 그려지도록 대기 전에 적용한다.
+	if _sprite_test or _mode == "sprite":
+		_apply_test_sprites()
 	await _wait(_delay)
 	match _mode:
 		"cards":
@@ -53,6 +63,33 @@ func _run() -> void:
 		"juice":
 			await _stage_juice()
 	await _capture()
+
+## 실제 아트가 아직 없으므로 런타임에 만든 텍스처를 일부 동물 데이터에만 꽂아 본다.
+## 저장소에 파일을 남기지 않으며, 이 프로세스의 메모리 상 리소스만 바뀐다.
+func _apply_test_sprites() -> void:
+	for animal_id in SPRITE_TEST_ANIMAL_IDS:
+		var data: AnimalData = ContentDB.get_animal(animal_id)
+		if data == null:
+			continue
+		data.sprite = _make_blob_texture(96, 64, data.color, Color(0.05, 0.03, 0.08, 1.0))
+		data.sprite_size = data.radius * 2.8
+		print("SPRITE TEST: '%s' 에 96x64 텍스처 지정 (표시 %.0fpx)" % [animal_id, data.sprite_size])
+
+## 굵은 아웃라인 카툰 스프라이트를 흉내 낸 타원 블롭. 정사각이 아니어서 크기 정규화도 함께 확인된다.
+func _make_blob_texture(width: int, height: int, fill: Color, outline: Color) -> Texture2D:
+	var image: Image = Image.create_empty(width, height, false, Image.FORMAT_RGBA8)
+	image.fill(Color(0.0, 0.0, 0.0, 0.0))
+	var cx: float = float(width - 1) * 0.5
+	var cy: float = float(height - 1) * 0.5
+	for y in height:
+		for x in width:
+			var nx: float = (float(x) - cx) / cx
+			var ny: float = (float(y) - cy) / cy
+			var dist: float = nx * nx + ny * ny
+			if dist > 1.0:
+				continue
+			image.set_pixel(x, y, outline if dist > 0.62 else fill)
+	return ImageTexture.create_from_image(image)
 
 ## 카드가 뜨면 오토파일럿이 바로 골라 버리므로 자동 처리를 끄고 레벨업을 강제한다.
 func _open_cards() -> void:

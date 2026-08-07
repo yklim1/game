@@ -7,8 +7,12 @@ const VISUAL_DURATION: float = 0.14
 
 var _pool: ObjectPool
 var _life_left: float = 0.0
+var _fallback_texture: Texture2D
 
 @onready var _sprite: Sprite2D = $Sprite
+
+func _ready() -> void:
+	_fallback_texture = _sprite.texture
 
 func set_pool(pool: ObjectPool) -> void:
 	_pool = pool
@@ -18,8 +22,8 @@ func setup(ability: AbilityData, origin: Vector2, dir: Vector2, damage: float) -
 	rotation = dir.angle()
 	_life_left = VISUAL_DURATION
 	var radius: float = ability.area_radius * RunState.area_mult
-	_sprite.self_modulate = ability.color
-	_sprite.scale = Vector2.ONE * (radius * 2.0 / float(_sprite.texture.get_width()))
+	var uses_art: bool = SpriteVisual.apply(_sprite, ability.attack_texture, _fallback_texture, radius * 2.0)
+	_sprite.self_modulate = SpriteVisual.resolve_tint(uses_art, ability.color, ability.tint_attack_texture)
 	_apply_damage(origin, dir, ability, damage, radius)
 
 func on_acquire() -> void:

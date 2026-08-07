@@ -9,8 +9,12 @@ var _tick_interval: float = 0.5
 var _tick_left: float = 0.0
 var _radius_sq: float = 0.0
 var _damage: float = 0.0
+var _fallback_texture: Texture2D
 
 @onready var _sprite: Sprite2D = $Sprite
+
+func _ready() -> void:
+	_fallback_texture = _sprite.texture
 
 func set_pool(pool: ObjectPool) -> void:
 	_pool = pool
@@ -23,8 +27,8 @@ func setup(ability: AbilityData, origin: Vector2, _dir: Vector2, damage: float) 
 	var radius: float = ability.area_radius * RunState.area_mult
 	_radius_sq = radius * radius
 	_damage = damage
-	_sprite.self_modulate = ability.color
-	_sprite.scale = Vector2.ONE * (radius * 2.0 / float(_sprite.texture.get_width()))
+	var uses_art: bool = SpriteVisual.apply(_sprite, ability.attack_texture, _fallback_texture, radius * 2.0)
+	_sprite.self_modulate = SpriteVisual.resolve_tint(uses_art, ability.color, ability.tint_attack_texture)
 
 func on_acquire() -> void:
 	visible = true

@@ -13,6 +13,12 @@ extends CharacterBody2D
 @export var iframe_blink_hz: float = 9.0
 ## 깜빡임의 어두운 쪽 알파.
 @export_range(0.0, 1.0) var iframe_min_alpha: float = 0.25
+## 실제 플레이어 스프라이트(투명 PNG). 비우면 씬의 플레이스홀더(icon.svg)를 그대로 쓴다.
+@export var sprite_texture: Texture2D
+## 화면 표시 크기(px, 긴 변). 0이면 씬에 저장된 기본 크기를 유지한다.
+@export var sprite_display_size: float = 0.0
+## 실제 스프라이트에도 씬의 self_modulate 색을 곱할지. 기본은 아트 원색 유지(false).
+@export var tint_sprite_texture: bool = false
 
 var _health: float = 0.0
 var _max_health_total: float = 0.0
@@ -26,12 +32,26 @@ var _alive: bool = true
 
 func _ready() -> void:
 	add_to_group("player")
+	_apply_sprite()
 	_max_health_total = max_health + RunState.bonus_max_health
 	_health = _max_health_total
 	EventBus.player_stats_changed.connect(_on_stats_changed)
 	EventBus.animal_died.connect(_on_animal_died)
 	# 아직 _ready 전인 UI도 초기 체력을 받도록 프레임 끝으로 미뤄 발행한다.
 	EventBus.player_health_changed.emit.call_deferred(_health, _max_health_total)
+
+## 스프라이트가 비어 있으면 씬의 플레이스홀더가 그대로 유지된다(무적 깜빡임은 modulate 를 쓰므로 영향 없음).
+func _apply_sprite() -> void:
+	var size: float = sprite_display_size
+	if size <= 0.0:
+		size = SpriteVisual.measure_display_size(_sprite)
+	var uses_art: bool = SpriteVisual.apply(_sprite, sprite_texture, _sprite.texture, size)
+	if uses_art:
+		_sprite.self_modulate = SpriteVisual.resolve_tint(true, _sprite.self_modulate, tint_sprite_texture)
+
+## 실제 스프라이트가 지정돼 그려지고 있으면 true.
+func is_using_sprite_art() -> bool:
+	return sprite_texture != null
 
 func get_ability_manager() -> AbilityManager:
 	return _ability_manager

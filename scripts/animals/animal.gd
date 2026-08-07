@@ -7,8 +7,10 @@ const ELITE_COLOR_BLEND: float = 0.45
 const ELITE_COLOR: Color = Color(1.0, 0.69, 0.13, 1.0)
 const ELITE_ESSENCE_BONUS: int = 4
 
-## 피격 순간 스프라이트를 이 색으로 물들인다.
+## 피격 순간 플레이스홀더 스프라이트를 이 색으로 물들인다.
 @export var hit_flash_color: Color = Color(1.0, 1.0, 1.0, 1.0)
+## 실제 스프라이트일 때의 플래시 배율. 흰색으로 덮으면 아트 형태가 사라지므로 원래 색을 이만큼 밝힌다.
+@export var hit_flash_texture_gain: float = 1.9
 ## 플래시가 원래 색으로 돌아오기까지의 시간(초).
 @export var hit_flash_duration: float = 0.09
 ## 피격 방향으로 밀리는 초기 속도(픽셀/초).
@@ -33,9 +35,15 @@ var _target: Node2D
 var _base_color: Color = Color.WHITE
 var _flash_left: float = 0.0
 var _knockback: Vector2 = Vector2.ZERO
+var _uses_art: bool = false
+var _fallback_texture: Texture2D
 
 @onready var _sprite: Sprite2D = $Sprite
 @onready var _shape: CollisionShape2D = $CollisionShape2D
+
+## 데이터에 스프라이트가 없을 때 되돌아갈 플레이스홀더를 기억해 둔다(풀에서 재사용되므로 필수).
+func _ready() -> void:
+	_fallback_texture = _sprite.texture
 
 func set_pool(pool: ObjectPool) -> void:
 	_pool = pool
@@ -68,14 +76,15 @@ func setup(
 func _apply_visuals(data: AnimalData) -> void:
 	var radius: float = data.radius
 	var color: Color = data.color
+	var size_mult: float = 1.0
 	if _is_elite:
 		radius *= ELITE_RADIUS_MULT
+		size_mult = ELITE_RADIUS_MULT
 		color = color.lerp(ELITE_COLOR, ELITE_COLOR_BLEND)
-	if data.sprite != null:
-		_sprite.texture = data.sprite
-	_base_color = color
-	_sprite.modulate = color
-	_sprite.scale = Vector2.ONE * (radius * 2.0 / float(_sprite.texture.get_width()))
+	var display_size: float = data.sprite_size if data.sprite_size > 0.0 else data.radius * 2.0
+	_uses_art = SpriteVisual.apply(_sprite, data.sprite, _fallback_texture, display_size * size_mult)
+	_base_color = SpriteVisual.resolve_tint(_uses_art, color, data.tint_sprite)
+	_sprite.modulate = _base_color
 	var circle: CircleShape2D = _shape.shape as CircleShape2D
 	if circle != null:
 		circle.radius = radius
@@ -92,6 +101,10 @@ func get_base_color() -> Color:
 
 func get_sprite_color() -> Color:
 	return _sprite.modulate
+
+## 데이터에 실제 스프라이트가 지정돼 그려지고 있으면 true, 플레이스홀더 폴백이면 false.
+func is_using_sprite_art() -> bool:
+	return _uses_art
 
 func is_hit_flashing() -> bool:
 	return _flash_left > 0.0
@@ -134,6 +147,18 @@ func _update_flash(delta: float) -> void:
 		_flash_left = 0.0
 		_sprite.modulate = _base_color
 
+## 피격 순간 실제로 쓰이는 플래시 색.
+## 플레이스홀더는 지금까지처럼 흰색으로 덮고, 실제 스프라이트는 원래 색을 밝혀 형태를 유지한다.
+func get_flash_color() -> Color:
+	if not _uses_art:
+		return hit_flash_color
+	return Color(
+		_base_color.r * hit_flash_texture_gain,
+		_base_color.g * hit_flash_texture_gain,
+		_base_color.b * hit_flash_texture_gain,
+		_base_color.a
+	)
+
 ## hit_direction 이 0이 아니면 그 방향으로 넉백된다(정규화는 내부에서 처리).
 func take_damage(amount: float, hit_direction: Vector2 = Vector2.ZERO) -> void:
 	if not _alive:
@@ -146,7 +171,7 @@ func take_damage(amount: float, hit_direction: Vector2 = Vector2.ZERO) -> void:
 
 func _apply_hit_feedback(hit_direction: Vector2) -> void:
 	_flash_left = hit_flash_duration
-	_sprite.modulate = hit_flash_color
+	_sprite.modulate = get_flash_color()
 	if hit_direction == Vector2.ZERO or knockback_strength <= 0.0:
 		return
 	var strength: float = knockback_strength * (knockback_elite_mult if _is_elite else 1.0)
