@@ -619,7 +619,14 @@ func _case_hit_feedback() -> void:
 	for _i in 30:
 		await get_tree().physics_frame
 		alphas[snappedf(player.get_sprite_alpha(), 0.01)] = true
-	_check(alphas.size() >= 2, "무적 프레임 동안 알파가 %d단계로 깜빡임" % alphas.size())
+	var alpha_steps: Array = alphas.keys()
+	alpha_steps.sort()
+	_check(
+		alphas.size() >= 2,
+		"무적 프레임 동안 알파가 %d단계로 깜빡임 (%s · 어두운 쪽 %.2f)" % [
+			alphas.size(), str(alpha_steps), player.iframe_min_alpha
+		]
+	)
 	await _simulate(1.0)
 	_check(not player.is_invulnerable(), "무적 프레임 종료")
 	_check(is_equal_approx(player.get_sprite_alpha(), 1.0), "무적 종료 후 알파 1.0 복귀 (%.2f)" % player.get_sprite_alpha())
@@ -924,9 +931,13 @@ func _case_sprite_pipeline() -> void:
 	if _game == null:
 		return
 	var player: Player = _game.get_player()
-	var placeholder: AnimalData = ContentDB.get_animal("spore_ant")
-	# 실제 아트가 아직 없으므로 런타임 텍스처로 대신한다(저장소에 파일을 남기지 않는다).
-	var art_data: AnimalData = placeholder.duplicate() as AnimalData
+	var source: AnimalData = ContentDB.get_animal("spore_ant")
+	# 아트가 들어간 동물이 늘어나도 폴백 경로를 검증할 수 있도록 텍스처를 비운 사본을 쓴다.
+	var placeholder: AnimalData = source.duplicate() as AnimalData
+	placeholder.sprite = null
+	placeholder.sprite_size = 0.0
+	# 원본 해상도와 무관하게 표시 크기가 정규화되는지 보려면 정사각이 아닌 텍스처가 필요하다.
+	var art_data: AnimalData = source.duplicate() as AnimalData
 	art_data.sprite = _make_test_texture(96, 48)
 	art_data.sprite_size = 40.0
 

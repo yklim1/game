@@ -11,7 +11,10 @@ extends Node
 ## --mode=shop     : 강제로 웨이브를 종료시켜 소굴 상점 화면
 ## --mode=juice    : 타격감(히트 플래시·넉백·사망 이펙트·데미지 숫자·화면 흔들림)이 동시에 보이는 순간
 ## --mode=sprite   : 적 일부에만 런타임 생성 텍스처를 지정해 "실제 스프라이트 + 폴백" 혼재 상태를 확인
+## --mode=flash    : 같은 적을 왼쪽=평상시 / 오른쪽=피격 중 으로 나란히 세워 히트 플래시를 A/B 비교
+## --mode=crowd    : 적을 대량으로 몰아넣어 주인공이 군중 속에서 식별되는지(색 영역 분리) 확인
 ## --sprite-test   : 다른 모드와 조합해 위 텍스처 지정을 함께 적용(예: juice + 텍스처 히트 플래시)
+## --animal=<id>   : flash/crowd 모드에서 세울 적 id (기본 spore_ant)
 
 const GAME_SCENE_PATH: String = "res://scenes/main/game.tscn"
 ## --mode=sprite 에서 텍스처를 지정해 볼 동물 id. 나머지 동물은 플레이스홀더로 남아 혼재 상태를 보여 준다.
@@ -21,11 +24,21 @@ const UI_WAIT_LIMIT: float = 3.0
 const SHOP_DEMO_FEED: int = 70
 ## 타격감 캡처에서 플레이어 주변에 세우는 표적 수.
 const JUICE_TARGET_COUNT: int = 14
+## flash 모드에서 세우는 A/B 쌍의 수.
+const FLASH_PAIR_COUNT: int = 5
+## flash 모드 격자 간격(px).
+const FLASH_SPACING: float = 68.0
+## crowd 모드에서 플레이어 주변에 몰아넣는 적 수.
+const CROWD_COUNT: int = 90
+## crowd 모드에서 적을 흩뿌리는 반경 범위(px).
+const CROWD_MIN_RADIUS: float = 40.0
+const CROWD_MAX_RADIUS: float = 330.0
 
 var _delay: float = 6.0
 var _mode: String = "gameplay"
 var _out_path: String = "docs/screenshots/phase3.png"
 var _sprite_test: bool = false
+var _animal_id: String = "spore_ant"
 
 var _game: Node
 var _autopilot: TestAutopilot
@@ -41,6 +54,8 @@ func _ready() -> void:
 			_mode = arg.split("=")[1]
 		elif arg == "--sprite-test":
 			_sprite_test = true
+		elif arg.begins_with("--animal="):
+			_animal_id = arg.split("=")[1]
 	_run.call_deferred()
 
 func _run() -> void:
@@ -62,6 +77,10 @@ func _run() -> void:
 			await _open_shop()
 		"juice":
 			await _stage_juice()
+		"flash":
+			await _stage_flash_compare()
+		"crowd":
+			await _stage_crowd()
 	await _capture()
 
 ## 실제 아트가 아직 없으므로 런타임에 만든 텍스처를 일부 동물 데이터에만 꽂아 본다.
@@ -136,6 +155,62 @@ func _stage_juice() -> void:
 	player.take_damage(6.0)
 	await _wait(0.05)
 	_log_diagnostics()
+
+## 히트 플래시를 눈으로/픽셀로 판정하려면 같은 적의 "평상시"와 "피격 중"이 한 화면에 있어야 한다.
+## 왼쪽 열은 손대지 않고, 오른쪽 열만 피격시킨 직후를 캡처한다.
+func _stage_flash_compare() -> void:
+	_autopilot.control_movement = false
+	var player: Player = _game.get_player()
+	var origin: Vector2 = player.global_position
+	var calm: Array[Animal] = []
+	var hit: Array[Animal] = []
+	for i in FLASH_PAIR_COUNT:
+		var y: float = (float(i) - float(FLASH_PAIR_COUNT - 1) * 0.5) * FLASH_SPACING
+		var left: Animal = _stand_target(origin + Vector2(-FLASH_SPACING * 1.6, y))
+		var right: Animal = _stand_target(origin + Vector2(FLASH_SPACING * 1.6, y))
+		if left != null:
+			calm.append(left)
+		if right != null:
+			hit.append(right)
+	await _wait(0.2)
+	# 플래시(0.09s)가 살아 있는 동안 캡처되도록 피격은 캡처 직전에, 대기 없이 한다.
+	for animal in hit:
+		animal.take_damage(1.0)
+	_log_flash_boxes(calm, hit)
+
+## 군중 가독성 검증: 주인공을 적으로 완전히 둘러싸 "0.1초 안에 찾을 수 있는가"를 눈으로 본다.
+func _stage_crowd() -> void:
+	_autopilot.control_movement = false
+	var origin: Vector2 = _game.get_player().global_position
+	var placed: int = 0
+	for i in CROWD_COUNT:
+		var angle: float = randf() * TAU
+		var radius: float = randf_range(CROWD_MIN_RADIUS, CROWD_MAX_RADIUS)
+		if _stand_target(origin + Vector2(cos(angle), sin(angle)) * radius) != null:
+			placed += 1
+	await _wait(0.2)
+	print("CROWD: '%s' %d마리 배치 (반경 %.0f~%.0fpx)" % [_animal_id, placed, CROWD_MIN_RADIUS, CROWD_MAX_RADIUS])
+
+## 이동속도 0·접촉피해 0·HP 대량으로 세워 두는 표적. 원하는 순간을 그대로 담을 수 있다.
+func _stand_target(position: Vector2) -> Animal:
+	var data: AnimalData = ContentDB.get_animal(_animal_id)
+	if data == null:
+		return null
+	var animal: Animal = _game.get_animal_pool().acquire() as Animal
+	if animal == null:
+		return null
+	animal.setup(data, position, _game.get_player(), 400.0, 0.0, 0.0, false)
+	return animal
+
+## 캡처된 PNG에서 어디를 재 볼지 알 수 있게 화면 좌표를 남긴다(육안 판정을 픽셀로 뒷받침하려면 필요).
+func _log_flash_boxes(calm: Array[Animal], hit: Array[Animal]) -> void:
+	var transform: Transform2D = get_viewport().get_canvas_transform()
+	for i in mini(calm.size(), hit.size()):
+		print("FLASH PAIR %d: 평상시 화면 %s | 피격 중 화면 %s" % [
+			i,
+			str((transform * calm[i].global_position).round()),
+			str((transform * hit[i].global_position).round()),
+		])
 
 ## 스크린샷을 눈으로 볼 때 필요한 정보(카메라가 실제로 플레이어를 따라가는지, 소리가 나는지).
 func _log_diagnostics() -> void:

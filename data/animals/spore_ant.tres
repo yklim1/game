@@ -1,11 +1,14 @@
-[gd_resource type="Resource" load_steps=2 format=3]
+[gd_resource type="Resource" load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/resources/animal_data.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/sprites/animals/spore_ant.png" id="2"]
 
 [resource]
 script = ExtResource("1")
 id = "spore_ant"
 display_name = "포자 개미"
+sprite = ExtResource("2")
+sprite_size = 24.0
 color = Color(0.553, 0.353, 1, 1)
 max_hp = 14.0
 move_speed = 95.0
