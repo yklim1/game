@@ -13,7 +13,7 @@ extends CharacterBody2D
 @export var iframe_blink_hz: float = 9.0
 ## 깜빡임의 어두운 쪽 알파.
 @export_range(0.0, 1.0) var iframe_min_alpha: float = 0.25
-## 실제 플레이어 스프라이트(투명 PNG). 비우면 씬의 플레이스홀더(icon.svg)를 그대로 쓴다.
+## 실제 플레이어 스프라이트(투명 PNG). 비우면 씬의 플레이스홀더(_placeholder.svg)를 그대로 쓴다.
 @export var sprite_texture: Texture2D
 ## 화면 표시 크기(px, 긴 변). 0이면 씬에 저장된 기본 크기를 유지한다.
 @export var sprite_display_size: float = 0.0

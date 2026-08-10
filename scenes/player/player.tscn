@@ -1,7 +1,7 @@
 [gd_scene load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://scripts/player/player.gd" id="1"]
-[ext_resource type="Texture2D" path="res://icon.svg" id="2"]
+[ext_resource type="Texture2D" path="res://assets/sprites/_placeholder.svg" id="2"]
 [ext_resource type="Script" path="res://scripts/systems/ability_manager.gd" id="3"]
 [ext_resource type="Script" path="res://scripts/systems/camera_shake.gd" id="4"]
 [ext_resource type="Texture2D" path="res://assets/sprites/player/player_cub.png" id="5"]

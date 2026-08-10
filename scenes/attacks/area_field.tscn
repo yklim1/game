@@ -1,7 +1,7 @@
 [gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/attacks/area_field.gd" id="1"]
-[ext_resource type="Texture2D" path="res://icon.svg" id="2"]
+[ext_resource type="Texture2D" path="res://assets/sprites/_placeholder.svg" id="2"]
 
 [node name="AreaField" type="Node2D"]
 script = ExtResource("1")

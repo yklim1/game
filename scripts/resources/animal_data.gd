@@ -8,7 +8,7 @@ enum Family { BUGS, CRITTERS, SCALE, WINGS, BRUTES, APEX }
 
 @export var id: String = ""
 @export var display_name: String = ""
-## 실제 스프라이트(투명 PNG). 비우면 플레이스홀더(icon.svg)를 color 로 물들여 쓴다.
+## 실제 스프라이트(투명 PNG). 비우면 플레이스홀더(_placeholder.svg)를 color 로 물들여 쓴다.
 ## 규격은 docs/ART_ASSET_SPEC.md 참고.
 @export var sprite: Texture2D
 ## 화면 표시 크기(px, 긴 변 기준). 0이면 충돌 반경에 맞춘다(radius * 2).
