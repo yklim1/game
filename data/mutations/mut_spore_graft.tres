@@ -16,4 +16,4 @@ rarity = 1
 weight = 1.2
 requires = Array[String](["not_ability:spore_cloud"])
 max_stacks = 1
-cost = 20
+cost = 30

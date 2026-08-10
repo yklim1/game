@@ -16,4 +16,4 @@ rarity = 0
 weight = 1.2
 requires = Array[String]([])
 max_stacks = 5
-cost = 10
+cost = 12
